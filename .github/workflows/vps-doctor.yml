@@ -1,0 +1,59 @@
+name: VPS Doctor
+
+# Read-only diagnostics over the existing deploy SSH path - dispatch it
+# whenever the box misbehaves and read the answers in the run log.
+# Runs nothing destructive: df/du/docker inspect/log tails only.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  doctor:
+    name: Inspect the VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Diagnose over SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          if [ -z "$DEPLOY_HOST" ] || [ -z "$DEPLOY_SSH_KEY" ]; then
+            echo "Deploy secrets not configured."
+            exit 0
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # the deploy's docker build is silent for minutes (output goes to a
+          # log file on the host) - without keep-alives the idle SSH session
+          # gets dropped by the network path ("broken pipe" mid-build)
+          printf 'Host *\n  ServerAliveInterval 30\n  ServerAliveCountMax 40\n  ConnectTimeout 30\n  ConnectionAttempts 6\n' >> ~/.ssh/config
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
+            "${DEPLOY_USER:-root}@${DEPLOY_HOST}" bash -s <<'DOC'
+          echo "===== df ====="
+          df -h /
+          echo "===== biggest dirs under /var/lib ====="
+          du -xh -d2 /var/lib 2>/dev/null | sort -h | tail -15
+          echo "===== containerd snapshots (top) ====="
+          du -xh -d1 /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots 2>/dev/null | sort -h | tail -8
+          echo "===== containers by writable size ====="
+          docker ps -as --format '{{.Names}}\t{{.Status}}\t{{.Size}}'
+          echo "===== restart counts (crash loops show here) ====="
+          for c in $(docker ps -aq); do
+            docker inspect "$c" --format '{{.Name}} restarts={{.RestartCount}} oom={{.State.OOMKilled}} status={{.State.Status}}'
+          done
+          echo "===== bench log sizes inside backends ====="
+          for c in kamra-backend-1 kamra-nightly-backend-1; do
+            echo "--- $c"
+            docker exec "$c" bash -c 'du -sh /home/frappe/frappe-bench/logs 2>/dev/null; ls -laSh /home/frappe/frappe-bench/logs 2>/dev/null | head -8; du -sh /home/frappe/frappe-bench/sites/*/logs 2>/dev/null | head -5' 2>/dev/null || echo "(exec failed)"
+          done
+          echo "===== biggest files on / (top 10) ====="
+          find / -xdev -type f -size +1G -exec ls -lh {} \; 2>/dev/null | sort -k5 -h | tail -10
+          echo "===== last nightly build log tail ====="
+          tail -25 ~/kamra-deploy/last-nightly-build.log 2>/dev/null
+          echo "===== dmesg / journal tail ====="
+          journalctl -p warning -n 20 --no-pager 2>/dev/null | tail -20
+          echo "DOCTOR_DONE"
+          DOC

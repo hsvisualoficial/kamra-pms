@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+@theme {
+  /* Kamra brand: deep hotel green, warm neutrals */
+  --color-brand-50: #ecf7f2;
+  --color-brand-100: #d2ece0;
+  --color-brand-600: #0f6b54;
+  --color-brand-700: #0b5442;
+  --color-brand-900: #073527;
+
+  /* Neutrals carry a faint warm bias so the greys read as chosen, not the
+     stock cool zinc. Dark mode + print remap these below. */
+  --color-zinc-50: #f8f7f5;
+  --color-zinc-100: #f1efec;
+  --color-zinc-200: #e6e3de;
+}
+
+html {
+  font-feature-settings: "tnum" 1; /* tabular numbers for counts and money */
+}
+
+/* Dark mode: every utility reads its color from a CSS variable, so
+   remapping the palette on .dark themes the whole app. Scrims/overlays
+   use bg-black so they stay dark in both themes. */
+.dark {
+  color-scheme: dark;
+  --color-white: #1c1c1f;
+  --color-zinc-50: #151517;
+  --color-zinc-100: #232326;
+  --color-zinc-200: #2f2f34;
+  --color-zinc-300: #43434a;
+  --color-zinc-400: #8a8a93;
+  --color-zinc-500: #a7a7b0;
+  --color-zinc-600: #c6c6cd;
+  --color-zinc-700: #dadade;
+  --color-zinc-800: #ebebee;
+  --color-zinc-900: #f6f6f7;
+  --color-zinc-950: #ffffff;
+  --color-brand-50: #10312a;
+  --color-brand-100: #154438;
+  --color-brand-600: #189776;
+  --color-brand-700: #41c39e;
+  --color-brand-900: #cdeee0;
+  --color-rose-50: #391521;
+  --color-rose-200: #5c2537;
+  --color-rose-500: #fb7185;
+  --color-rose-600: #fb7185;
+  --color-rose-700: #fda4af;
+  --color-rose-800: #fecdd3;
+  --color-rose-900: #ffe4e6;
+  --color-amber-50: #3b2c0a;
+  --color-amber-200: #6b4e0e;
+  --color-amber-600: #fbbf24;
+  --color-amber-800: #fcd34d;
+  --color-amber-900: #fde68a;
+  --color-emerald-50: #0e3323;
+  --color-emerald-200: #17573a;
+  --color-emerald-600: #34d399;
+  --color-emerald-700: #6ee7b7;
+  --color-emerald-800: #a7f3d0;
+  --color-emerald-900: #d1fae5;
+  --color-sky-50: #0d2e40;
+  --color-sky-100: #123a50;
+  --color-sky-200: #1a567a;
+  --color-sky-700: #7dd3fc;
+  --color-sky-800: #a5deff;
+  --color-sky-900: #cfeeff;
+}
+
+/* Printables (GRC, invoices) always come out on paper-white. */
+@media print {
+  .dark {
+    color-scheme: light;
+    --color-white: #ffffff;
+    --color-zinc-50: #fafafa;
+    --color-zinc-100: #f4f4f5;
+    --color-zinc-200: #e4e4e7;
+    --color-zinc-300: #d4d4d8;
+    --color-zinc-400: #a1a1aa;
+    --color-zinc-500: #71717a;
+    --color-zinc-600: #52525b;
+    --color-zinc-700: #3f3f46;
+    --color-zinc-800: #27272a;
+    --color-zinc-900: #18181b;
+    --color-zinc-950: #09090b;
+    --color-brand-50: #ecf7f2;
+    --color-brand-100: #d2ece0;
+    --color-brand-600: #0f6b54;
+    --color-brand-700: #0b5442;
+    --color-brand-900: #073527;
+    --color-rose-50: #fff1f2;
+    --color-rose-200: #fecdd3;
+    --color-rose-500: #f43f5e;
+    --color-rose-600: #e11d48;
+    --color-rose-700: #be123c;
+    --color-rose-800: #9f1239;
+    --color-rose-900: #881337;
+    --color-amber-50: #fffbeb;
+    --color-amber-200: #fde68a;
+    --color-amber-600: #d97706;
+    --color-amber-800: #92400e;
+    --color-amber-900: #78350f;
+    --color-emerald-50: #ecfdf5;
+    --color-emerald-200: #a7f3d0;
+    --color-emerald-600: #059669;
+    --color-emerald-700: #047857;
+    --color-emerald-800: #065f46;
+    --color-emerald-900: #064e3b;
+    --color-sky-50: #f0f9ff;
+    --color-sky-100: #e0f2fe;
+    --color-sky-200: #bae6fd;
+    --color-sky-700: #0369a1;
+    --color-sky-800: #075985;
+    --color-sky-900: #0c4a6e;
+  }
+}
+
+body {
+  @apply bg-zinc-50 text-zinc-900 antialiased;
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-sheet-in {
+  animation: sheet-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-fade-in {
+  animation: fade-in 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sheet-in,
+  .animate-fade-in {
+    animation: none;
+  }
+}
+
+@media print {
+  aside,
+  header {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+}

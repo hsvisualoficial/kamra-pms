@@ -1,0 +1,315 @@
+/*  The Kamra app suite. One PMS, several apps - like a workspace suite:
+    Front Desk is where the day happens; Housekeeping, Operations, Events,
+    Revenue, Finance and Admin are their own rooms. The switcher in the top
+    bar and the /apps launcher move between them; Search (Ctrl/Cmd+K) jumps
+    anywhere and the sidebar follows.
+
+    Every app is open and included - Kamra is fully open source. */
+
+import {
+  BadgePercent,
+  Share2,
+  Network,
+  MessageCircle,
+  PhoneCall,
+  BedDouble,
+  Briefcase,
+  Building2,
+  CalendarDays,
+  CalendarRange,
+  ClipboardCheck,
+  ClipboardList,
+  Clock,
+  Code2,
+  ExternalLink,
+  FileSpreadsheet,
+  Home,
+  IndianRupee,
+  Landmark,
+  LayoutGrid,
+  ListChecks,
+  ListTodo,
+  PackageSearch,
+  Plus,
+  Receipt,
+  ScrollText,
+  Settings as SettingsIcon,
+  Shirt,
+  Smartphone,
+  Sparkles,
+  Store,
+  Tags,
+  Ticket,
+  TrendingUp,
+  UserCog,
+  Users,
+  UtensilsCrossed,
+  ConciergeBell,
+  BarChart3,
+  ChartLine,
+  ShieldCheck,
+  Globe,
+  Camera,
+  HelpCircle,
+  Search,
+  Lock,
+  AlarmClock,
+  LayoutDashboard,
+  Wallet,
+  BookOpen,
+  History,
+  Banknote,
+  Calculator,
+} from "lucide-react"
+
+/** Shared tile treatment for switcher and launcher. One quiet system, not a rainbow. */
+export const APP_TILE =
+  "border border-zinc-200 bg-zinc-50 text-zinc-700"
+
+export interface AppNavItem {
+  to?: string
+  href?: string // external (Frappe Desk, HK mobile app) - opens a new tab
+  label: string
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
+  roles?: string[] // per-item gate on top of the app's gate
+  /** Sidebar section label within an app (e.g. Cashier / Billing / Books). */
+  group?: string
+}
+
+export interface AppDef {
+  id: string
+  name: string
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
+  /** @deprecated kept for callers; all apps share APP_TILE */
+  tint: string
+  description: string
+  roles: string[] // any of these roles can see the app
+  items: AppNavItem[]
+  /** extra route prefixes that belong to this app (detail pages etc.) */
+  extraPrefixes?: string[]
+}
+
+const DESK = import.meta.env.PROD ? "" : "http://localhost:8000"
+
+export const APPS: AppDef[] = [
+  {
+    id: "front-desk",
+    name: "Front Desk",
+    icon: Building2,
+    tint: APP_TILE,
+    description: "Arrivals, departures, bookings and guests - the day's work.",
+    roles: ["Front Desk", "Hotel Admin", "System Manager", "Administrator"],
+    items: [
+      { to: "/", label: "Today", icon: Home },
+      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/assistant", label: "Kamra Agent", icon: Sparkles },
+      { to: "/reservations", label: "Reservations", icon: ClipboardList },
+      { to: "/crs", label: "Central Reservations", icon: Search },
+      { to: "/tape", label: "Tape Chart", icon: LayoutGrid },
+      { to: "/calendar", label: "Calendar", icon: CalendarDays },
+      { to: "/guests", label: "Guests", icon: Users },
+      { to: "/room-blocks", label: "Room Blocks", icon: Lock },
+    ],
+    extraPrefixes: ["/grc", "/cancelled", "/agents"],
+  },
+  {
+    id: "housekeeping",
+    name: "Housekeeping",
+    icon: ClipboardCheck,
+    tint: APP_TILE,
+    description: "Room status board, lost & found, and the phone app.",
+    roles: ["Housekeeping", "Front Desk", "Hotel Admin", "System Manager", "Administrator"],
+    items: [
+      { to: "/housekeeping", label: "Room Board", icon: ListChecks },
+      { to: "/laundry", label: "Laundry", icon: Shirt },
+      { to: "/lost-found", label: "Lost & Found", icon: PackageSearch },
+      { href: "/kamra/hk", label: "Phone App", icon: Smartphone },
+    ],
+  },
+  {
+    id: "operations",
+    name: "Operations",
+    icon: ListTodo,
+    tint: APP_TILE,
+    description: "Guest requests and ops workflows.",
+    roles: ["Front Desk", "Hotel Admin", "System Manager", "Administrator"],
+    items: [
+      { to: "/tickets", label: "Guest Requests", icon: Ticket },
+      { to: "/whatsapp", label: "WhatsApp", icon: MessageCircle },
+      { to: "/channels", label: "Channels", icon: PhoneCall,
+        roles: ["Hotel Admin", "System Manager", "Administrator"] },
+      { to: "/ops-sla", label: "SLA Report", icon: AlarmClock },
+    ],
+  },
+  {
+    id: "fnb",
+    name: "F&B",
+    icon: UtensilsCrossed,
+    tint: APP_TILE,
+    description: "Restaurant POS, kitchen display, the menu and kitchen stock.",
+    roles: ["Front Desk", "Finance", "Hotel Admin", "System Manager", "Administrator"],
+    items: [
+      { to: "/pos", label: "Restaurant POS", icon: UtensilsCrossed },
+      { to: "/pos-dashboard", label: "F&B Dashboard", icon: TrendingUp },
+      { to: "/kitchen", label: "Kitchen Display", icon: ConciergeBell },
+      { to: "/menu-items", label: "Menu", icon: ClipboardList },
+      { to: "/inventory", label: "Kitchen Inventory", icon: PackageSearch },
+      { to: "/outlets", label: "Outlets", icon: Store },
+    ],
+  },
+  {
+    id: "events",
+    name: "Banquets & Groups",
+    icon: CalendarRange,
+    tint: APP_TILE,
+    description:
+      "Function prospecting, quotations and event orders - plus room blocks and pickup.",
+    roles: ["Front Desk", "Revenue Manager", "Hotel Admin", "System Manager", "Administrator"],
+    items: [
+      { to: "/banquet", label: "Banquets", icon: CalendarRange },
+      { to: "/banquet-month", label: "Month Availability", icon: CalendarRange },
+      { to: "/banquet-diary", label: "Function Diary", icon: CalendarDays },
+      { to: "/banquet-registers", label: "Registers", icon: ScrollText },
+      { to: "/banquet-catalogue", label: "Menus & Services", icon: UtensilsCrossed },
+      { to: "/events", label: "All Functions", icon: ListChecks },
+      { to: "/groups", label: "Groups & Blocks", icon: Users },
+      { to: "/venues", label: "Halls & Venues", icon: Landmark },
+    ],
+    extraPrefixes: ["/banquet"],
+  },
+  {
+    id: "revenue",
+    name: "Revenue",
+    icon: BarChart3,
+    tint: APP_TILE,
+    description: "Rates, seasons, offers and the partners who sell you.",
+    roles: ["Revenue Manager", "Hotel Admin", "System Manager", "Administrator"],
+    items: [
+      { to: "/revenue-reports", label: "Revenue Reports", icon: ChartLine },
+      { to: "/channel-manager", label: "Channel Manager", icon: Share2 },
+      { to: "/ota-mappings", label: "OTA Room Mappings", icon: Network },
+      { to: "/rate-plans", label: "Rate Plans", icon: Tags },
+      { to: "/seasons", label: "Seasons", icon: CalendarDays },
+      { to: "/guardrails", label: "Guardrails", icon: ShieldCheck },
+      { to: "/vouchers", label: "Vouchers", icon: BadgePercent },
+      { to: "/meal-plans", label: "Meal Plans", icon: UtensilsCrossed },
+      { to: "/travel-agents", label: "Travel Agents", icon: Briefcase },
+      { to: "/companies", label: "Companies", icon: Building2 },
+    ],
+  },
+  {
+    id: "finance",
+    name: "Finance",
+    icon: Landmark,
+    tint: APP_TILE,
+    description: "Cashier till, folios, ledgers, night audit and books export.",
+    roles: [
+      "Finance", "Front Desk", "Hotel Admin", "System Manager", "Administrator",
+    ],
+    items: [
+      // Cashier
+      { to: "/cashier", label: "My Till", icon: Wallet, group: "Cashier" },
+      { to: "/cashier/sessions", label: "Sessions", icon: Clock, group: "Cashier" },
+      { to: "/cashier/petty-cash", label: "Petty Cash", icon: Banknote, group: "Cashier" },
+      { to: "/cashier/shift-report", label: "Shift Report", icon: ScrollText, group: "Cashier" },
+      { to: "/shifts", label: "Shift Handover", icon: Clock, group: "Cashier" },
+      { to: "/cashier/fx", label: "Currency Desk", icon: Calculator, group: "Cashier" },
+      // Billing
+      { to: "/billing", label: "Billing", icon: Receipt, group: "Billing" },
+      { to: "/folio-history", label: "Folio History", icon: History, group: "Billing" },
+      { to: "/laundry", label: "Laundry", icon: Shirt, group: "Billing" },
+      // Books
+      { to: "/ledgers", label: "Ledgers", icon: BookOpen, group: "Books" },
+      { to: "/reports", label: "Reports", icon: IndianRupee, group: "Books" },
+      { to: "/accounting-export", label: "Accounting Export", icon: FileSpreadsheet, group: "Books" },
+    ],
+    extraPrefixes: ["/billing/", "/cashier/", "/ledgers", "/folio-history"],
+  },
+  {
+    id: "booking-engine",
+    name: "Booking Engine",
+    icon: Globe,
+    tint: APP_TILE,
+    description: "Manage direct booking setup, property profile, photo gallery, FAQs, and SEO rules.",
+    roles: ["Revenue Manager", "Hotel Admin", "System Manager", "Administrator"],
+    items: [
+      { to: "/booking-settings/profile", label: "Hotel Profile", icon: Home },
+      { to: "/booking-settings/amenities", label: "Amenities", icon: ClipboardList },
+      { to: "/booking-settings/photos", label: "Photos", icon: Camera },
+      { to: "/booking-settings/policies", label: "Policies", icon: ScrollText },
+      { to: "/booking-settings/payments", label: "Payments", icon: Receipt },
+      { to: "/booking-settings/faq", label: "FAQ", icon: HelpCircle },
+      { to: "/booking-settings/seo", label: "SEO", icon: Search },
+    ],
+    extraPrefixes: ["/booking-settings"],
+  },
+  {
+    id: "admin",
+    name: "Admin",
+    icon: SettingsIcon,
+    tint: APP_TILE,
+    description: "Property setup, inventory, users, audit and the Marketplace.",
+    roles: ["Hotel Admin", "System Manager", "Administrator"],
+    items: [
+      { to: "/settings", label: "Settings", icon: SettingsIcon },
+      { to: "/rooms", label: "Rooms", icon: BedDouble },
+      { to: "/room-types", label: "Room Types", icon: LayoutGrid },
+      { to: "/activity", label: "Activity Log", icon: ScrollText },
+      { to: "/marketplace", label: "Marketplace", icon: Store },
+      {
+        to: "/developers",
+        label: "Developers",
+        icon: Code2,
+        roles: ["System Manager", "Administrator"],
+      },
+      {
+        to: "/setup",
+        label: "New Property",
+        icon: Plus,
+        roles: ["System Manager", "Administrator"],
+      },
+      {
+        href: `${DESK}/app/user`,
+        label: "Manage Users",
+        icon: UserCog,
+        roles: ["Administrator", "System Manager"],
+      },
+      {
+        href: `${DESK}/app/build`,
+        label: "Frappe Desk",
+        icon: ExternalLink,
+        roles: ["Administrator", "System Manager"],
+      },
+    ],
+  },
+]
+
+/** Which app owns a path? Longest matching item route wins; "/" only exact. */
+export function appForPath(pathname: string): AppDef {
+  let best: { app: AppDef; len: number } | null = null
+  for (const app of APPS) {
+    const prefixes = [
+      ...app.items.filter((i) => i.to).map((i) => i.to!),
+      ...(app.extraPrefixes ?? []),
+    ]
+    for (const p of prefixes) {
+      const hit =
+        p === "/" ? pathname === "/" : pathname === p || pathname.startsWith(p + "/") || pathname.startsWith(p)
+      if (hit && (!best || p.length > best.len))
+        best = { app, len: p.length }
+    }
+  }
+  return best?.app ?? APPS[0]
+}
+
+/** The apps this user can reach: their roles must allow it AND the
+ *  property must actually run it. Roles alone were never enough - Front
+ *  Desk unlocks both F&B and Banquets, so a serviced-apartment operator
+ *  had no way to not see them. */
+export function visibleApps(roles: string[], modules?: string[]): AppDef[] {
+  return APPS.filter(
+    (a) =>
+      a.roles.some((r) => roles.includes(r)) &&
+      (!modules?.length || modules.includes(a.id)),
+  )
+}

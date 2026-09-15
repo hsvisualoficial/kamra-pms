@@ -1,0 +1,626 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "field:property_name",
+ "creation": "2026-07-04 13:57:41.580283",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "property_name",
+  "legal_name",
+  "property_kind",
+  "column_break_a",
+  "phone",
+  "email",
+  "website",
+  "sb_address",
+  "address_line",
+  "city",
+  "state",
+  "column_break_b",
+  "country",
+  "pincode",
+  "timezone",
+  "sb_ops",
+  "currency",
+  "checkin_time",
+  "checkout_time",
+  "minimum_nights",
+  "booking_mode",
+  "hold_minutes",
+  "security_deposit_amount",
+  "cleaning_fee",
+  "cleaning_fee_taxable",
+  "access_instructions",
+  "require_precheckin_for_access",
+  "hourly_view_start",
+  "hourly_view_end",
+  "auto_send_checkin_links",
+  "column_break_c",
+  "gstin",
+  "disabled",
+  "locale",
+  "sb_gst",
+  "gst_mode",
+  "gst_slab_threshold",
+  "gst_rate_low",
+  "gst_rate_high",
+  "rates_include_tax",
+  "sb_showcase",
+  "sb_modules",
+  "enabled_modules",
+  "booking_engine_enabled",
+  "booking_payment_mode",
+  "advance_percent",
+  "registration_fee",
+  "require_cashier_pin",
+  "business_date",
+  "showcase_description",
+  "hero_image",
+  "star_category",
+  "google_reviews_url",
+  "tripadvisor_url",
+  "property_amenities",
+  "logo_url",
+  "brand_accent",
+  "id_retention",
+  "sell_message",
+  "free_cancel_days",
+  "cancellation_fee",
+  "no_show_charge",
+  "deposit_pct",
+  "driving_directions",
+  "latitude",
+  "longitude",
+  "gallery",
+  "house_rules",
+  "pets_policy",
+  "children_policy",
+  "extra_bed_policy",
+  "faqs",
+  "meta_title",
+  "meta_description",
+  "og_image",
+  "page_slug",
+  "overbooking_pct"
+ ],
+ "fields": [
+  {
+   "fieldname": "property_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Property Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "legal_name",
+   "fieldtype": "Data",
+   "label": "Legal Name"
+  },
+  {
+   "default": "Hotel",
+   "description": "Setup / presentation preset only (ADR-005). Does not fork pricing, availability, or channel sync.",
+   "fieldname": "property_kind",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Property Kind",
+   "options": "Hotel\nShort Term Rental"
+  },
+  {
+   "fieldname": "column_break_a",
+   "fieldtype": "Column Break",
+   "label": "Column Break A"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "website",
+   "fieldtype": "Data",
+   "label": "Website"
+  },
+  {
+   "fieldname": "sb_address",
+   "fieldtype": "Section Break",
+   "label": "Address"
+  },
+  {
+   "fieldname": "address_line",
+   "fieldtype": "Data",
+   "label": "Address Line"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "label": "City"
+  },
+  {
+   "fieldname": "state",
+   "fieldtype": "Data",
+   "label": "State"
+  },
+  {
+   "fieldname": "column_break_b",
+   "fieldtype": "Column Break",
+   "label": "Column Break B"
+  },
+  {
+   "default": "India",
+   "fieldname": "country",
+   "fieldtype": "Data",
+   "label": "Country"
+  },
+  {
+   "fieldname": "pincode",
+   "fieldtype": "Data",
+   "label": "Pincode"
+  },
+  {
+   "default": "Asia/Kolkata",
+   "fieldname": "timezone",
+   "fieldtype": "Data",
+   "label": "Timezone"
+  },
+  {
+   "fieldname": "sb_ops",
+   "fieldtype": "Section Break",
+   "label": "Operations"
+  },
+  {
+   "default": "INR",
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "default": "14:00:00",
+   "fieldname": "checkin_time",
+   "fieldtype": "Time",
+   "label": "Check-in Time"
+  },
+  {
+   "default": "11:00:00",
+   "fieldname": "checkout_time",
+   "fieldtype": "Time",
+   "label": "Check-out Time"
+  },
+  {
+   "default": "1",
+   "fieldname": "minimum_nights",
+   "fieldtype": "Int",
+   "label": "Minimum Stay Nights"
+  },
+  {
+   "default": "Instant",
+   "description": "Instant: guest books into Pending Payment or Confirmed. Request to Book: guest waits for host approval (Requested). ADR-006.",
+   "fieldname": "booking_mode",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Booking Mode",
+   "options": "Instant\nRequest to Book"
+  },
+  {
+   "default": "120",
+   "description": "Minutes a Held / Pending Payment reservation keeps inventory before auto-cancel.",
+   "fieldname": "hold_minutes",
+   "fieldtype": "Int",
+   "label": "Hold Window (minutes)"
+  },
+  {
+   "default": "5000",
+   "fieldname": "security_deposit_amount",
+   "fieldtype": "Currency",
+   "label": "Security Deposit Amount"
+  },
+  {
+   "default": "0",
+   "description": "One-time cleaning fee added to every quote (ADR-008). 0 = none.",
+   "fieldname": "cleaning_fee",
+   "fieldtype": "Currency",
+   "label": "Cleaning Fee"
+  },
+  {
+   "default": "1",
+   "description": "When checked, cleaning fee is taxed at the room GST rate.",
+   "fieldname": "cleaning_fee_taxable",
+   "fieldtype": "Check",
+   "label": "Cleaning Fee Taxable"
+  },
+  {
+   "description": "Released to the guest only after payment, deposit, and optional pre-check-in gates pass.",
+   "fieldname": "access_instructions",
+   "fieldtype": "Text",
+   "label": "Access Instructions"
+  },
+  {
+   "default": "0",
+   "fieldname": "require_precheckin_for_access",
+   "fieldtype": "Check",
+   "label": "Require Pre-check-in for Access"
+  },
+  {
+   "default": "06:00:00",
+   "fieldname": "hourly_view_start",
+   "fieldtype": "Time",
+   "label": "Hourly View Start"
+  },
+  {
+   "default": "23:00:00",
+   "fieldname": "hourly_view_end",
+   "fieldtype": "Time",
+   "label": "Hourly View End"
+  },
+  {
+   "fieldname": "auto_send_checkin_links",
+   "fieldtype": "Check",
+   "label": "Auto-send self check-in links to arrivals"
+  },
+  {
+   "fieldname": "column_break_c",
+   "fieldtype": "Column Break",
+   "label": "Column Break C"
+  },
+  {
+   "fieldname": "gstin",
+   "fieldtype": "Data",
+   "label": "GSTIN"
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "fieldname": "locale",
+   "fieldtype": "Data",
+   "label": "Locale",
+   "default": "en-IN"
+  },
+  {
+   "fieldname": "sb_gst",
+   "fieldtype": "Section Break",
+   "label": "GST Rules"
+  },
+  {
+   "default": "Slab",
+   "description": "Slab: rate decides GST (India). Fixed: use the room type's tax_percent.",
+   "fieldname": "gst_mode",
+   "fieldtype": "Select",
+   "label": "Room GST Mode",
+   "options": "Slab\nFixed"
+  },
+  {
+   "default": "7500",
+   "fieldname": "gst_slab_threshold",
+   "fieldtype": "Currency",
+   "label": "Slab Threshold (\u20b9/night)"
+  },
+  {
+   "default": "5",
+   "fieldname": "gst_rate_low",
+   "fieldtype": "Percent",
+   "label": "GST at/below threshold"
+  },
+  {
+   "default": "18",
+   "fieldname": "gst_rate_high",
+   "fieldtype": "Percent",
+   "label": "GST above threshold"
+  },
+  {
+   "default": "0",
+   "description": "On: configured room prices are tax-inclusive; the engine back-computes the taxable value.",
+   "fieldname": "rates_include_tax",
+   "fieldtype": "Check",
+   "label": "Rates Include Tax"
+  },
+  {
+   "fieldname": "sb_showcase",
+   "fieldtype": "Section Break",
+   "label": "Booking Engine"
+  },
+  {
+   "fieldname": "sb_modules",
+   "fieldtype": "Section Break",
+   "label": "Modules"
+  },
+  {
+   "fieldname": "enabled_modules",
+   "fieldtype": "Small Text",
+   "label": "Modules In Use",
+   "description": "Which parts of Kamra this property actually runs, comma separated. Empty = everything. A serviced-apartment operator has no restaurant and no banquet hall, and shouldn't be shown three empty menus on their first morning."
+  },
+  {
+   "default": "1",
+   "fieldname": "booking_engine_enabled",
+   "fieldtype": "Check",
+   "label": "Booking Engine Enabled"
+  },
+  {
+   "fieldname": "booking_payment_mode",
+   "fieldtype": "Select",
+   "label": "Booking Payment",
+   "options": "Pay at hotel\nAdvance percent\nRegistration fee\nFull online",
+   "default": "Pay at hotel",
+   "description": "What the guest pays online when booking on the public page. Existing bookings keep the terms they were made under."
+  },
+  {
+   "fieldname": "advance_percent",
+   "fieldtype": "Percent",
+   "label": "Advance %",
+   "depends_on": "eval:doc.booking_payment_mode=='Advance percent'",
+   "description": "Percent of the total collected upfront; the rest is paid at the hotel."
+  },
+  {
+   "fieldname": "registration_fee",
+   "fieldtype": "Currency",
+   "label": "Registration Fee",
+   "depends_on": "eval:doc.booking_payment_mode=='Registration fee'",
+   "description": "Flat amount collected upfront; the rest is paid at the hotel."
+  },
+  {
+   "fieldname": "require_cashier_pin",
+   "fieldtype": "Check",
+   "label": "Require cashier PIN on money actions",
+   "default": "0"
+  },
+  {
+   "fieldname": "business_date",
+   "fieldtype": "Date",
+   "label": "Business Date",
+   "description": "Current front-office business date. Advanced by night audit."
+  },
+  {
+   "fieldname": "showcase_description",
+   "fieldtype": "Small Text",
+   "label": "Description (public)"
+  },
+  {
+   "fieldname": "hero_image",
+   "fieldtype": "Attach Image",
+   "label": "Hero Image",
+   "description": "1920\u00d71080px (16:9 landscape), JPG or WebP under 2 MB. The big photo at the top of the booking page."
+  },
+  {
+   "fieldname": "star_category",
+   "fieldtype": "Select",
+   "label": "Category",
+   "options": "\n1 Star\n2 Star\n3 Star\n4 Star\n5 Star\nBoutique\nHomestay"
+  },
+  {
+   "fieldname": "google_reviews_url",
+   "fieldtype": "Data",
+   "label": "Google Reviews URL"
+  },
+  {
+   "fieldname": "tripadvisor_url",
+   "fieldtype": "Data",
+   "label": "TripAdvisor URL"
+  },
+  {
+   "description": "Comma-separated, e.g. Pool, Parking, Restaurant",
+   "fieldname": "property_amenities",
+   "fieldtype": "Small Text",
+   "label": "Property Amenities (public)"
+  },
+  {
+   "description": "Square, 512\u00d7512px. PNG or SVG with a transparent background. Shown on the booking page and invoices.",
+   "fieldname": "logo_url",
+   "fieldtype": "Attach Image",
+   "label": "Logo"
+  },
+  {
+   "default": "#0f6b54",
+   "description": "Accent hex (e.g. #0f6b54) for the booking page - buttons, links, highlights.",
+   "fieldname": "brand_accent",
+   "fieldtype": "Data",
+   "label": "Booking Page Accent"
+  },
+  {
+   "default": "Store",
+   "description": "Verify & Discard masks occupant/guest ID numbers to the last 4 digits at checkout.",
+   "fieldname": "id_retention",
+   "fieldtype": "Select",
+   "label": "ID Retention",
+   "options": "Store\nVerify & Discard"
+  },
+  {
+   "description": "Shown to staff in the booking dialog and read by the AI agent as its upsell prompt.",
+   "fieldname": "sell_message",
+   "fieldtype": "Small Text",
+   "label": "Sell Message"
+  },
+  {
+   "default": "1",
+   "description": "Cancellations at least this many days before arrival are free.",
+   "fieldname": "free_cancel_days",
+   "fieldtype": "Int",
+   "label": "Free Cancellation (days before arrival)"
+  },
+  {
+   "default": "First Night",
+   "fieldname": "cancellation_fee",
+   "fieldtype": "Select",
+   "label": "Late Cancellation Fee",
+   "options": "None\nFirst Night\nFull Stay"
+  },
+  {
+   "default": "First Night",
+   "fieldname": "no_show_charge",
+   "fieldtype": "Select",
+   "label": "No-show Charge",
+   "options": "None\nFirst Night\nFull Stay"
+  },
+  {
+   "default": "0",
+   "description": "Advance expected at booking, as % of the stay total.",
+   "fieldname": "deposit_pct",
+   "fieldtype": "Percent",
+   "label": "Deposit %"
+  },
+  {
+   "fieldname": "driving_directions",
+   "fieldtype": "Small Text",
+   "label": "Driving Directions"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude"
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude"
+  },
+  {
+   "fieldname": "gallery",
+   "fieldtype": "Table",
+   "label": "Photo Gallery",
+   "options": "Property Photo"
+  },
+  {
+   "fieldname": "house_rules",
+   "fieldtype": "Small Text",
+   "label": "House Rules"
+  },
+  {
+   "fieldname": "pets_policy",
+   "fieldtype": "Small Text",
+   "label": "Pets Policy"
+  },
+  {
+   "fieldname": "children_policy",
+   "fieldtype": "Small Text",
+   "label": "Children Policy"
+  },
+  {
+   "fieldname": "extra_bed_policy",
+   "fieldtype": "Small Text",
+   "label": "Extra Bed Policy"
+  },
+  {
+   "fieldname": "faqs",
+   "fieldtype": "Table",
+   "label": "FAQs",
+   "options": "Property FAQ"
+  },
+  {
+   "fieldname": "meta_title",
+   "fieldtype": "Data",
+   "label": "Meta Title"
+  },
+  {
+   "fieldname": "meta_description",
+   "fieldtype": "Small Text",
+   "label": "Meta Description"
+  },
+  {
+   "fieldname": "og_image",
+   "fieldtype": "Attach Image",
+   "label": "OG Image",
+   "description": "Exactly 1200\u00d7630px, JPG or PNG. What WhatsApp, Google and social previews show when the booking page is shared."
+  },
+  {
+   "fieldname": "page_slug",
+   "fieldtype": "Data",
+   "label": "Page Slug"
+  },
+  {
+   "fieldname": "overbooking_pct",
+   "fieldtype": "Percent",
+   "label": "Overbooking Allowance %",
+   "description": "Sell unassigned bookings above physical capacity by this much (0 = never overbook). Room types can override."
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-01 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Kamra",
+ "name": "Property",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Hotel Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Front Desk"
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance"
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Revenue Manager"
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Housekeeping"
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Kamra Agent"
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

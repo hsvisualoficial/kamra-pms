@@ -1,0 +1,209 @@
+name: Nightly
+
+# The nightly channel: every night (03:00 IST), if develop moved in the last
+# 24h and its CI is green, refresh the rolling `nightly` prerelease, publish
+# ghcr.io/kamra-pms/kamra:nightly, and redeploy nightly.kamrapms.com.
+# workflow_dispatch forces a nightly regardless of the 24h check.
+
+on:
+  schedule:
+    - cron: "30 21 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  gate:
+    name: Anything new on develop?
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+      sha: ${{ steps.check.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 50
+
+      - name: Check for fresh commits and green CI
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHA=$(git rev-parse HEAD)
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            FRESH=$(git log --since="24 hours ago" --oneline | wc -l)
+            if [ "$FRESH" -eq 0 ]; then
+              echo "No commits on develop in 24h - skipping nightly."
+              echo "proceed=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
+          # Require the CI workflow to have succeeded for this exact SHA.
+          CONCLUSION=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=$SHA&per_page=1" \
+            --jq '.workflow_runs[0].conclusion // "missing"')
+          echo "CI for $SHA: $CONCLUSION"
+          if [ "$CONCLUSION" != "success" ]; then
+            echo "CI not green for develop HEAD - refusing to ship a nightly."
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "proceed=true" >> "$GITHUB_OUTPUT"
+
+  docker:
+    name: Publish nightly image
+    needs: gate
+    if: needs.gate.outputs.proceed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout frappe_docker
+        uses: actions/checkout@v4
+        with:
+          repository: frappe/frappe_docker
+
+      - name: Write apps.json
+        run: |
+          cat > apps.json <<EOF
+          [
+            {"url": "https://github.com/frappe/payments", "branch": "develop"},
+            {"url": "https://github.com/Kamra-PMS/kamra-pms", "branch": "develop"}
+          ]
+          EOF
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: images/layered/Containerfile
+          push: true
+          tags: ghcr.io/kamra-pms/kamra:nightly
+          build-args: |
+            FRAPPE_PATH=https://github.com/frappe/frappe
+            FRAPPE_BRANCH=version-16
+            CACHE_BUST=nightly-${{ needs.gate.outputs.sha }}
+          secret-files: |
+            apps_json=./apps.json
+
+  prerelease:
+    name: Refresh rolling nightly prerelease
+    needs: [gate, docker]
+    if: needs.gate.outputs.proceed == 'true'
+    runs-on: ubuntu-latest
+    # cosmetic (moves the rolling GitHub release) - never fail the deploy;
+    # job-level write in case the repo default drops to read again
+    permissions:
+      contents: write
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Move the nightly tag and prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete nightly --cleanup-tag --yes || true
+          gh release create nightly \
+            --target "${{ needs.gate.outputs.sha }}" \
+            --prerelease \
+            --title "Nightly build" \
+            --notes "Rolling prerelease from \`develop\` @ ${{ needs.gate.outputs.sha }}. Try it at https://nightly.kamrapms.com or pull \`ghcr.io/kamra-pms/kamra:nightly\`."
+
+  deploy-nightly:
+    name: Deploy nightly.kamrapms.com
+    needs: [gate, docker]
+    if: needs.gate.outputs.proceed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Deploy over SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          if [ -z "$DEPLOY_HOST" ] || [ -z "$DEPLOY_SSH_KEY" ]; then
+            echo "Deploy secrets not configured - skipping nightly deploy."
+            exit 0
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # the deploy's docker build is silent for minutes (output goes to a
+          # log file on the host) - without keep-alives the idle SSH session
+          # gets dropped by the network path ("broken pipe" mid-build)
+          printf 'Host *\n  ServerAliveInterval 30\n  ServerAliveCountMax 40\n  ConnectTimeout 30\n  ConnectionAttempts 6\n' >> ~/.ssh/config
+          # Pre-deploy self-heal: a deploy that dies mid-way never reaches
+          # its post-deploy prune, and image prune alone has proven too
+          # weak (4GB back on a 96GB-full disk). Show WHERE the space went,
+          # then clear every reclaimable pool: unused images, builder
+          # cache, dangling volumes, container logs, old journals. Running
+          # stacks and their named volumes are untouched.
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
+            "${DEPLOY_USER:-root}@${DEPLOY_HOST}" bash -s <<'HEAL'
+          df -h / | tail -1
+          echo "--- disk breakdown ---"
+          du -xh -d1 /var/lib/containerd 2>/dev/null | sort -h | tail -3
+          docker ps -s --format '{{.Names}}\t{{.Size}}' | sort -k2 -h | tail -8
+          echo "--- healing ---"
+          docker system prune -af 2>/dev/null | tail -1
+          docker builder prune -af 2>/dev/null | tail -1
+          docker volume ls -qf dangling=true | xargs -r docker volume rm 2>/dev/null || true
+          truncate -s 0 /var/lib/docker/containers/*/*-json.log 2>/dev/null || true
+          journalctl --vacuum-size=200M 2>/dev/null | tail -1 || true
+          # The big one: bench containers write logs INSIDE their writable
+          # layer (containerd snapshots), which no prune can reclaim while
+          # they run. Recreating the app services discards those layers -
+          # identical to what every deploy does; data volumes untouched.
+          USE=$(df --output=pcent / | tail -1 | tr -dc '0-9')
+          if [ "${USE:-0}" -ge 85 ]; then
+            echo "disk at ${USE}% - recreating app services to shed writable layers"
+            cd ~/kamra-deploy/frappe_docker
+            for PROJ in kamra:kamra.env kamra-nightly:kamra-nightly.env; do
+              docker compose --project-name "${PROJ%%:*}" --env-file "${PROJ##*:}" \
+                -f compose.yaml -f overrides/compose.mariadb.yaml \
+                -f overrides/compose.redis.yaml -f overrides/compose.noproxy.yaml \
+                up -d --force-recreate backend frontend websocket \
+                queue-short queue-long scheduler >/dev/null 2>&1 || true
+            done
+            docker system prune -af 2>/dev/null | tail -1
+          fi
+          df -h / | tail -1
+          HEAL
+          # hot-patch the VPS's copy of redeploy.sh: the asset-sync tar
+          # follows symlinks with no cycle detection and twice grew to 80GB
+          # (the real cause of the 'log spammer' disk fills). Idempotent -
+          # once the pattern carries the fix, sed matches nothing.
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
+            "${DEPLOY_USER:-root}@${DEPLOY_HOST}" \
+            "sed -i 's|tar -C /home/frappe/frappe-bench -chf |timeout 300 tar -C /home/frappe/frappe-bench --exclude=node_modules -chf |' ~/kamra-deploy/redeploy.sh || true"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
+            "${DEPLOY_USER:-root}@${DEPLOY_HOST}" \
+            "bash ~/kamra-deploy/redeploy.sh nightly"
+          # Refresh the showcase seed (idempotent) so new demo data - menu
+          # items, table layouts, laundry rates - appears without a manual
+          # step. Best effort: a seed hiccup must not fail the deploy.
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
+            "${DEPLOY_USER:-root}@${DEPLOY_HOST}" bash -s <<'SEED'
+          cd ~/kamra-deploy/frappe_docker
+          docker compose --project-name kamra-nightly --env-file kamra-nightly.env \
+            -f compose.yaml -f overrides/compose.mariadb.yaml \
+            -f overrides/compose.redis.yaml -f overrides/compose.noproxy.yaml \
+            exec -T backend bench --site nightly.kamrapms.com \
+            execute kamra.scripts.seed_showcase.execute || true
+          SEED

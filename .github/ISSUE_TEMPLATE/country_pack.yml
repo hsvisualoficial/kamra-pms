@@ -1,0 +1,29 @@
+name: Country pack request
+description: Ask for (or offer to build) localization for a new country
+labels: ["country-pack"]
+body:
+  - type: input
+    id: country
+    attributes:
+      label: Country
+    validations:
+      required: true
+  - type: textarea
+    id: rules
+    attributes:
+      label: Tax & invoicing rules
+      description: |
+        What the pack must handle — tax model (VAT/GST rates, slabs, inclusive/exclusive),
+        invoice numbering or fiscalization requirements, mandatory invoice fields, currency/locale.
+        India (`kamra/localization/india.py`) is the reference implementation.
+    validations:
+      required: true
+  - type: dropdown
+    id: build
+    attributes:
+      label: Are you offering to build it?
+      options:
+        - "Yes — I'd contribute the pack with guidance"
+        - "No — requesting it"
+    validations:
+      required: true

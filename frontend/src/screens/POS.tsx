@@ -1,0 +1,1466 @@
+import { useCallback, useEffect, useRef, useState } from "react"
+import {
+  Plus, Minus, Trash2, Send, UtensilsCrossed, Search,
+  Maximize2, Minimize2, Wallet, Printer, Receipt, XCircle, Ban,
+  Scissors, Users, PauseCircle, Tag, Gift, Clock, Menu, LogOut, Focus,
+  Keyboard, LayoutGrid, BedDouble,
+} from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { call, getCurrentProperty } from "../lib/api"
+import { subscribeRealtime } from "../lib/realtime"
+import { serverError } from "../lib/resource"
+import { useCashierAuth } from "../lib/cashierAuth"
+import { printThermal, kotHtml, billHtml, type BillData, type KotLine } from "../lib/thermal"
+import { useFloorFullscreen } from "../lib/kiosk"
+import { Button } from "../components/ui/button"
+import { cn } from "../lib/utils"
+import { cur, moneyLocale } from "../lib/money"
+import { useT } from "../lib/i18n"
+
+const inr = (n: unknown) =>
+  Number(n ?? 0).toLocaleString(moneyLocale(), { maximumFractionDigits: 0 })
+const inr2 = (n: unknown) =>
+  Number(n ?? 0).toLocaleString(moneyLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+interface MenuItem {
+  name: string
+  item_name: string
+  category: string
+  price: number
+  is_veg: number
+  image: string | null
+}
+interface Outlet { name: string; outlet_name: string; gst_rate: number }
+interface OpenOrder {
+  name: string
+  label: string
+  status: string
+  order_total: number
+  items: number
+  pending: number
+  kot_fired: number
+  kot_no: number | null
+  order_type: string | null
+  table_no: string | null
+  creation: string
+  nc?: number
+}
+interface TableBill {
+  order: string
+  label: string
+  order_total: number
+  state: "running" | "fired" | "ready"
+}
+interface TableTile {
+  table: string
+  seats: number | null
+  area: string | null
+  temp?: boolean
+  state: "vacant" | "running" | "fired" | "ready" | "reserved" | "cleaning"
+  bills: number
+  order_total?: number
+  guests?: number | null
+  since?: string
+  reservation?: string
+  res_guest?: string
+  res_party?: number | null
+  res_phone?: string | null
+  res_time?: string
+  orders: TableBill[]
+}
+interface RecentOrder {
+  name: string
+  label: string
+  status: string
+  order_type: string | null
+  order_total: number
+  paid: number
+  payment_mode: string | null
+  nc: number
+  modified: string
+  open: boolean
+}
+interface CartLine {
+  menu_item: string
+  item_name: string
+  price: number
+  is_veg: number
+  qty: number
+  instructions: string
+}
+interface OrderItem {
+  row: string
+  item_name: string
+  qty: number
+  amount: number
+  instructions: string | null
+  kot_status: string
+  voided: number
+}
+interface KotTicket {
+  kot_no: number | null
+  at?: string
+  round?: number
+  nc?: boolean
+  nc_by?: string | null
+  label: string
+  order_type?: string | null
+  order: string
+  customer?: string | null
+  address?: string | null
+  items: KotLine[]
+}
+interface Detail {
+  name: string
+  status: string
+  table_no: string | null
+  room: string | null
+  order_type: string | null
+  kot_no: number | null
+  guests: number | null
+  customer_name: string | null
+  customer_phone: string | null
+  delivery_address: string | null
+  nc: number
+  nc_authorized_by: string | null
+  nc_note: string | null
+  kot_tickets: KotTicket[]
+  paid: number
+  payment_mode: string | null
+  discount_amount: number
+  subtotal: number
+  order_total: number
+  items: OrderItem[]
+}
+
+type OrderType = "Dine In" | "Room Service" | "Takeaway" | "Delivery"
+const ORDER_TYPES: OrderType[] = ["Dine In", "Room Service", "Takeaway", "Delivery"]
+
+const TILE: Record<TableTile["state"], string> = {
+  vacant: "border-zinc-200 bg-white text-zinc-600 hover:border-brand-400 hover:text-brand-700",
+  running: "border-amber-300 bg-amber-50 text-amber-900 hover:border-amber-400",
+  fired: "border-sky-300 bg-sky-50 text-sky-900 hover:border-sky-400",
+  ready: "border-emerald-300 bg-emerald-50 text-emerald-900 hover:border-emerald-400",
+  reserved: "border-violet-300 bg-violet-50 text-violet-900 hover:border-violet-400",
+  cleaning: "border-zinc-300 bg-zinc-100 text-zinc-500 hover:border-brand-400",
+}
+
+const inputCls =
+  "w-full rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm " +
+  "focus:outline-2 focus:outline-offset-1 focus:outline-brand-600"
+
+/** "23m" / "2h 5m" since a server timestamp. */
+function ago(ts?: string) {
+  if (!ts) return ""
+  const mins = Math.max(0, Math.round((Date.now() - new Date(ts.replace(" ", "T")).getTime()) / 60000))
+  if (mins < 60) return `${mins}m`
+  if (mins < 600) return `${Math.floor(mins / 60)}h ${mins % 60}m`
+  return `${Math.round(mins / 60)}h` // keep long-running tags compact
+}
+
+export default function POS() {
+  const { t } = useT()
+  const { ensureUnlocked } = useCashierAuth()
+  const rootRef = useRef<HTMLDivElement>(null)
+  const [outlets, setOutlets] = useState<Outlet[]>([])
+  const [outlet, setOutlet] = useState("")
+  const [rooms, setRooms] = useState<{ name: string; room_number: string }[]>([])
+  const [cats, setCats] = useState<{ category: string; items: MenuItem[] }[]>([])
+  const [cat, setCat] = useState("All")
+  const [query, setQuery] = useState("")
+  const [open, setOpen] = useState<OpenOrder[]>([])
+  const [tables, setTables] = useState<TableTile[]>([])
+  const [recent, setRecent] = useState<RecentOrder[]>([])
+  const [tableQuery, setTableQuery] = useState("")
+  const [tableFilter, setTableFilter] = useState<"all" | "available" | "occupied">("all")
+  const [areaFilter, setAreaFilter] = useState("All")
+  const [resTile, setResTile] = useState<string | null>(null) // reserved table with panel open
+  const [reserveOpen, setReserveOpen] = useState(false)
+  const [resForm, setResForm] = useState({ table: "", guest: "", phone: "", party: "", at: "" })
+  const [ncOpen, setNcOpen] = useState(false)
+  const [ncBy, setNcBy] = useState("Captain")
+  const [ncNote, setNcNote] = useState("")
+  const [selected, setSelected] = useState<string | null>(null) // null = new bill
+  const [detail, setDetail] = useState<Detail | null>(null)
+  const [orderType, setOrderType] = useState<OrderType>("Dine In")
+  const [room, setRoom] = useState("")
+  const [table, setTable] = useState("")
+  const [guests, setGuests] = useState("")
+  const [custName, setCustName] = useState("")
+  const [custPhone, setCustPhone] = useState("")
+  const [custAddr, setCustAddr] = useState("")
+  const [cart, setCart] = useState<CartLine[]>([]) // new lines (new bill OR next round)
+  const [discount, setDiscount] = useState("")
+  const [discOpen, setDiscOpen] = useState(false)
+  const [printKot, setPrintKot] = useState(() => localStorage.getItem("pos_print_kot") !== "0")
+  const [settling, setSettling] = useState(false)
+  const [sheetNc, setSheetNc] = useState(false) // NC tender open inside the settle sheet
+  const [voiding, setVoiding] = useState<OrderItem | null>(null)
+  const [voidReason, setVoidReason] = useState("")
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelReason, setCancelReason] = useState("")
+  const [chooser, setChooser] = useState<string | null>(null) // table with several bills
+  const [splitMode, setSplitMode] = useState(false)
+  const [splitSel, setSplitSel] = useState<Set<string>>(new Set())
+  const [customTable, setCustomTable] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [printNote, setPrintNote] = useState<string | null>(null)
+  // responsive chrome: which pane a phone shows, the tablet tables drawer,
+  // and the shortcuts popover in the header
+  const [mobilePane, setMobilePane] = useState<"tables" | "menu" | "bill">("menu")
+  const [tablesOpen, setTablesOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
+  const navigate = useNavigate()
+  const { floorOn, kioskOn, browserFs, toggleBrowserFs, toggleFocus, exitFloor } =
+    useFloorFullscreen(rootRef)
+
+  useEffect(() => {
+    call<Outlet[]>("kamra.pos.outlets", { property: getCurrentProperty() })
+      .then((o) => { setOutlets(o); if (o[0]) setOutlet(o[0].name) })
+      .catch((e) => setError(serverError(e)))
+    call<{ rooms: { name: string; room_number: string }[] }>("kamra.api.hk_queue", { property: getCurrentProperty() })
+      .then((d) => setRooms(d.rooms || []))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => { localStorage.setItem("pos_print_kot", printKot ? "1" : "0") }, [printKot])
+
+  const loadMenu = useCallback(() => {
+    if (!outlet) return
+    call<{ categories: { category: string; items: MenuItem[] }[] }>("kamra.pos.pos_menu", { outlet })
+      .then((m) => { setCats(m.categories); setCat("All") })
+      .catch((e) => setError(serverError(e)))
+  }, [outlet])
+  useEffect(loadMenu, [loadMenu])
+
+  const loadOpen = useCallback(() => {
+    if (!outlet) return
+    call<OpenOrder[]>("kamra.pos.open_orders", { outlet }).then(setOpen).catch(() => {})
+    call<{ tables: TableTile[] }>("kamra.pos.table_map", { outlet })
+      .then((d) => setTables(d.tables)).catch(() => {})
+    call<RecentOrder[]>("kamra.pos.recent_orders", { outlet }).then(setRecent).catch(() => {})
+  }, [outlet])
+  useEffect(() => {
+    loadOpen()
+    const unsub = subscribeRealtime(loadOpen) // live tables + bills across captains
+    const t = setInterval(loadOpen, 20_000)
+    return () => { unsub(); clearInterval(t) }
+  }, [loadOpen])
+
+  function resetPanel() {
+    setCart([]); setDiscount(""); setDiscOpen(false); setSettling(false); setSheetNc(false)
+    setVoiding(null); setVoidReason(""); setCancelling(false); setCancelReason("")
+    setSplitMode(false); setSplitSel(new Set()); setChooser(null)
+    setNcOpen(false); setNcBy("Captain"); setNcNote("")
+    setResTile(null); setReserveOpen(false); setTablesOpen(false)
+  }
+  function newOrder(atTable?: string) {
+    setSelected(null); setDetail(null); setRoom(""); resetPanel()
+    setTable(atTable || ""); setCustomTable(false)
+    setGuests(""); setCustName(""); setCustPhone(""); setCustAddr("")
+    if (atTable) setOrderType("Dine In")
+    setMobilePane("menu") // a fresh bill starts at the menu on a phone
+  }
+  async function openTab(name: string) {
+    setSelected(name); resetPanel()
+    setMobilePane("bill") // an existing bill opens on the bill on a phone
+    const d = await call<Detail>("kamra.pos.order_detail", { order: name })
+    setDetail(d)
+  }
+  async function reloadDetail() {
+    if (!selected) return
+    const d = await call<Detail>("kamra.pos.order_detail", { order: selected })
+    setDetail(d)
+  }
+  /** Cycle open bills (F3); from "new bill" it enters at the first tab. */
+  function traverse(dir: 1 | -1) {
+    if (open.length === 0) return
+    const idx = selected === null ? -1 : open.findIndex((o) => o.name === selected)
+    const next = idx === -1
+      ? (dir === 1 ? 0 : open.length - 1)
+      : (idx + dir + open.length) % open.length
+    openTab(open[next].name)
+  }
+
+  const addToCart = (it: MenuItem) =>
+    setCart((c) => {
+      const ex = c.find((l) => l.menu_item === it.name)
+      if (ex) return c.map((l) => l.menu_item === it.name ? { ...l, qty: l.qty + 1 } : l)
+      return [...c, { menu_item: it.name, item_name: it.item_name, price: it.price, is_veg: it.is_veg, qty: 1, instructions: "" }]
+    })
+  const setQty = (mi: string, d: number) =>
+    setCart((c) => c.flatMap((l) => l.menu_item === mi ? (l.qty + d <= 0 ? [] : [{ ...l, qty: l.qty + d }]) : [l]))
+  const setInstr = (mi: string, v: string) =>
+    setCart((c) => c.map((l) => l.menu_item === mi ? { ...l, instructions: v } : l))
+
+  const newSubtotal = cart.reduce((s, l) => s + l.qty * l.price, 0)
+  const disc = Math.min(Number(discount) || 0, selected ? Number.MAX_SAFE_INTEGER : newSubtotal)
+
+  async function act(fn: () => Promise<unknown>) {
+    setBusy(true); setError(null)
+    try { await fn(); loadOpen() }
+    catch (e) { setError(serverError(e)) }
+    finally { setBusy(false) }
+  }
+
+  const outletDoc = outlets.find((o) => o.name === outlet)
+  const outletName = outletDoc?.outlet_name || outlet
+  const gstRate = Number(outletDoc?.gst_rate ?? 5)
+  const orderLabel = (d: { table_no?: string | null; room?: string | null; order_type?: string | null; customer_name?: string | null; name?: string }) =>
+    d.table_no ? `Table ${d.table_no}`
+      : d.room ? `Room ${d.room.split("-").pop()}`
+        : d.order_type === "Takeaway" || d.order_type === "Delivery"
+          ? `${d.order_type}${d.customer_name ? ` · ${d.customer_name.split(" ")[0]}` : ""}`
+          : (d.name || "Bill")
+
+  // what the bill panel is pricing right now
+  const taxable = selected && detail ? Number(detail.order_total || 0) : newSubtotal - disc
+  const gstAmt = taxable * gstRate / 100
+  const grand = taxable + gstAmt
+
+  function printSavedKot(t: KotTicket, reprint = false) {
+    printThermal(`KOT #${t.kot_no}`, kotHtml({
+      outlet: outletName, kot_no: t.kot_no, label: t.label,
+      order_type: t.order_type, order: t.order, reprint,
+      customer: t.customer, address: t.address,
+      nc: !!t.nc, nc_by: t.nc_by, items: t.items,
+    }))
+  }
+
+  function maybePrintKot(kot: {
+    kot_no: number | null
+    nc?: boolean
+    ticket?: KotTicket
+    fired_items: { item_name: string; qty: number; instructions?: string | null }[]
+  }, label: string, type: string | null,
+                         customer?: string | null, address?: string | null,
+                         ncBy?: string | null) {
+    const ticket = kot.ticket ?? {
+      kot_no: kot.kot_no, label, order_type: type, order: "",
+      customer, address, nc: !!kot.nc, nc_by: ncBy, items: kot.fired_items,
+    }
+    if (!ticket.items?.length) return
+    setPrintNote(`KOT #${ticket.kot_no ?? "—"} saved${printKot ? " and sent to printer" : ". Turn on Print KOT to send it to the kitchen printer"}.`)
+    if (!printKot) return
+    printSavedKot(ticket)
+  }
+
+  function newBillArgs() {
+    return {
+      outlet, property: getCurrentProperty(),
+      order_type: orderType,
+      room: orderType === "Room Service" ? room || null : null,
+      table_no: orderType === "Dine In" ? table || null : null,
+      guests: guests || null,
+      customer_name: orderType === "Takeaway" || orderType === "Delivery" ? custName || null : null,
+      customer_phone: orderType === "Takeaway" || orderType === "Delivery" ? custPhone || null : null,
+      delivery_address: orderType === "Delivery" ? custAddr || null : null,
+      items: cart.map((l) => ({ menu_item: l.menu_item, qty: l.qty, instructions: l.instructions })),
+    }
+  }
+  const newBillLabel = () =>
+    orderType === "Dine In" && table ? `Table ${table}`
+      : orderType === "Room Service" && room ? `Room ${room.split("-").pop()}`
+        : `${orderType}${custName ? ` · ${custName.split(" ")[0]}` : ""}`
+
+  /** Create the bill (optionally firing the KOT). Returns the order id. */
+  async function createBill(fire: boolean) {
+    const r = await call<{ order: string }>("kamra.pos.create_order", newBillArgs())
+    if (disc > 0) await call("kamra.pos.apply_discount", { order: r.order, amount: disc, reason: "" })
+    await call("kamra.pos.confirm_order", { order: r.order })
+    if (fire) {
+      const kot = await call<{ kot_no: number | null; fired_items: { item_name: string; qty: number; instructions?: string | null }[]; ticket?: KotTicket }>(
+        "kamra.pos.fire_kot", { order: r.order })
+      maybePrintKot(kot, newBillLabel(), orderType,
+        custName || null, orderType === "Delivery" ? custAddr || null : null)
+    }
+    return r.order
+  }
+
+  async function kotAction() { // F6 - fire the kitchen ticket
+    if (selected) {
+      if (cart.length === 0) return
+      await act(async () => {
+        await call("kamra.pos.add_items", {
+          order: selected,
+          items: cart.map((l) => ({ menu_item: l.menu_item, qty: l.qty, instructions: l.instructions })),
+        })
+        const kot = await call<{ kot_no: number | null; nc?: boolean; ticket?: KotTicket; fired_items: { item_name: string; qty: number; instructions?: string | null }[] }>(
+          "kamra.pos.fire_kot", { order: selected })
+        if (detail) maybePrintKot(kot, orderLabel(detail), detail.order_type,
+          detail.customer_name, detail.delivery_address, detail.nc_authorized_by)
+        await reloadDetail(); setCart([])
+      })
+    } else {
+      if (cart.length === 0) return
+      await act(async () => { await createBill(true); newOrder() })
+    }
+  }
+  async function hold() { // F5 - park the bill without firing
+    if (selected || cart.length === 0) return
+    await act(async () => { await createBill(false); newOrder() })
+  }
+  async function proceedToPay() { // F4 — opens the settle sheet
+    if (selected && detail) {
+      setSettling(true); setSheetNc(false)
+      setMobilePane("bill")
+    } else if (cart.length > 0) {
+      await act(async () => {
+        const order = await createBill(true)
+        await openTab(order)
+        setSettling(true)
+      })
+    }
+  }
+  async function settle(mode: "Cash" | "Card" | "UPI") {
+    if (!selected) return
+    const order = selected
+    await act(async () => {
+      await ensureUnlocked()
+      await call("kamra.pos.pay_order", { order, mode })
+      const bill = await call<BillData>("kamra.pos.bill_data", { order })
+      printThermal(`Bill ${order}`, billHtml(bill))
+      newOrder()
+    })
+  }
+  /** Close at zero: Deliver posts NC bills / room-service to their homes. */
+  async function settleDeliver() {
+    if (!selected) return
+    await act(async () => {
+      await call("kamra.pos.deliver_order", { order: selected })
+      newOrder()
+    })
+  }
+  /** The Complimentary tender: authorize the NC, then close the bill at zero. */
+  async function settleNc() {
+    if (!selected) return
+    await act(async () => {
+      await call("kamra.pos.mark_nc", {
+        order: selected, authorized_by: ncBy, note: ncNote, undo: 0,
+      })
+      await call("kamra.pos.deliver_order", { order: selected })
+      newOrder()
+    })
+  }
+  async function printBill() {
+    if (!selected) return
+    const bill = await call<BillData>("kamra.pos.bill_data", { order: selected })
+    printThermal(`Bill ${selected}`, billHtml(bill))
+  }
+  function reprintKot() {
+    if (!detail) return
+    const last = (detail.kot_tickets || []).at(-1)
+    if (last?.items?.length) {
+      printSavedKot(last, true)
+      setPrintNote(`Reprinting KOT #${last.kot_no}.`)
+      return
+    }
+    const items = detail.items.filter((i) => !i.voided && i.kot_status !== "New")
+    if (!items.length) return
+    printThermal(`KOT #${detail.kot_no}`, kotHtml({
+      outlet: outletName, kot_no: detail.kot_no, label: orderLabel(detail),
+      order_type: detail.order_type, order: detail.name, reprint: true,
+      customer: detail.customer_name, address: detail.delivery_address,
+      nc: !!detail.nc, nc_by: detail.nc_authorized_by, items,
+    }))
+  }
+
+  async function saveNc(undo = false) {
+    if (!selected) return
+    await act(async () => {
+      await call("kamra.pos.mark_nc", {
+        order: selected, authorized_by: ncBy, note: ncNote, undo: undo ? 1 : 0,
+      })
+      setNcOpen(false)
+      await reloadDetail()
+    })
+  }
+  async function applyDiscount() {
+    if (!selected) { setDiscOpen(false); return } // new bill: applied at create
+    await act(async () => {
+      await call("kamra.pos.apply_discount", { order: selected, amount: Number(discount) || 0, reason: "" })
+      setDiscOpen(false)
+      await reloadDetail()
+    })
+  }
+  async function confirmVoid() {
+    if (!selected || !voiding || !voidReason.trim()) return
+    await act(async () => {
+      await call("kamra.pos.void_item", { order: selected, item_row: voiding.row, reason: voidReason })
+      setVoiding(null); setVoidReason("")
+      await reloadDetail()
+    })
+  }
+  async function confirmCancel() {
+    if (!selected || !cancelReason.trim()) return
+    await act(async () => {
+      await call("kamra.pos.cancel_order", { order: selected, reason: cancelReason })
+      newOrder()
+    })
+  }
+  function toggleSplitSel(row: string) {
+    setSplitSel((s) => {
+      const n = new Set(s)
+      if (n.has(row)) n.delete(row); else n.add(row)
+      return n
+    })
+  }
+  async function confirmSplit() {
+    if (!selected || splitSel.size === 0) return
+    const order = selected
+    await act(async () => {
+      const r = await call<{ new_order: string }>("kamra.pos.split_order", {
+        order, item_rows: [...splitSel],
+      })
+      await openTab(r.new_order) // land on the party's new bill
+    })
+  }
+  async function saveReservation() {
+    const f = resForm
+    if (!f.table || !f.guest.trim() || !f.at) return
+    await act(async () => {
+      await call("kamra.pos.reserve_table", {
+        outlet, table_no: f.table, guest_name: f.guest, phone: f.phone || null,
+        party_size: f.party || null, reserved_at: f.at.replace("T", " "),
+      })
+      setReserveOpen(false)
+      setResForm({ table: "", guest: "", phone: "", party: "", at: "" })
+    })
+  }
+  async function seatReservation(t: TableTile) {
+    if (!t.reservation) return
+    await act(async () => {
+      await call("kamra.pos.set_reservation", { reservation: t.reservation, status: "Seated" })
+      newOrder(t.table)
+      if (t.res_party) setGuests(String(t.res_party))
+    })
+  }
+  async function closeReservation(t: TableTile, status: "Cancelled" | "No Show") {
+    if (!t.reservation) return
+    await act(async () => {
+      await call("kamra.pos.set_reservation", { reservation: t.reservation, status })
+      setResTile(null)
+    })
+  }
+  async function cleanTable(t: TableTile) {
+    await act(async () => {
+      await call("kamra.pos.mark_table_clean", { outlet, table_no: t.table })
+      newOrder(t.table)
+    })
+  }
+
+  // F-key shortcuts (the bar at the bottom is the legend)
+  const keysRef = useRef({ newOrder, traverse, proceedToPay, hold, kotAction })
+  keysRef.current = { newOrder, traverse, proceedToPay, hold, kotAction }
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const k = keysRef.current
+      if (e.key === "F2") { e.preventDefault(); k.newOrder() }
+      else if (e.key === "F3") { e.preventDefault(); k.traverse(1) }
+      else if (e.key === "F4") { e.preventDefault(); k.proceedToPay() }
+      else if (e.key === "F5") { e.preventDefault(); k.hold() }
+      else if (e.key === "F6") { e.preventDefault(); k.kotAction() }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
+
+  const allItems = cats.flatMap((c) => c.items)
+  const shownItems = query.trim()
+    ? allItems.filter((it) => it.item_name.toLowerCase().includes(query.toLowerCase()))
+    : cat === "All" ? null : (cats.find((c) => c.category === cat)?.items || [])
+
+  const tableNames = new Set(tables.map((t) => t.table))
+  const looseBills = open.filter((o) =>
+    !o.table_no || !tableNames.has(o.table_no))
+  const areas = [...new Set(tables.map((t) => t.area).filter(Boolean))] as string[]
+  const visibleTables = tables.filter((t) =>
+    (tableFilter === "all" || (tableFilter === "available" ? t.state === "vacant" : t.state !== "vacant")) &&
+    (areaFilter === "All" || (t.area || "Other") === areaFilter) &&
+    (!tableQuery.trim() || t.table.toLowerCase().includes(tableQuery.toLowerCase())))
+  const availableCount = tables.filter((t) => t.state === "vacant").length
+  // group under area headings when a floor plan has areas and no area is picked
+  const tableGroups: [string | null, TableTile[]][] =
+    areas.length > 0 && areaFilter === "All"
+      ? [...new Map(visibleTables.map((t) => [t.area || "Other", true])).keys()]
+          .map((a) => [a, visibleTables.filter((t) => (t.area || "Other") === a)])
+      : [[null, visibleTables]]
+
+  const isNewCustomerType = !selected && (orderType === "Takeaway" || orderType === "Delivery")
+  const runningBills = open.filter((o) => !o.kot_fired)
+  const kitchenBills = open.filter((o) => o.kot_fired && o.pending > 0)
+  const billItemCount = (selected && detail ? detail.items.filter((i) => !i.voided).length : 0)
+    + cart.reduce((s, l) => s + l.qty, 0)
+
+  /* The tables / open bills / recent stack has three homes: a fixed left
+     column on desktop, a slide-in drawer on tablets, its own pane on phones.
+     One JSX tree, three placements. */
+  const tablesPane = (
+    <>
+            <div className="shrink-0 rounded-xl border border-zinc-200 bg-white p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-zinc-500">{t("Running tables")}</h3>
+                {tables.length > 0 && (
+                  <button onClick={() => setReserveOpen((v) => !v)}
+                    className="rounded-lg border border-zinc-200 px-2 py-0.5 text-[11px] font-medium text-zinc-600 hover:border-violet-400 hover:text-violet-700">
+                    + {t("Reserve")}
+                  </button>
+                )}
+              </div>
+              {reserveOpen && (
+                <div className="mb-2 space-y-1.5 rounded-xl border border-violet-200 bg-violet-50 p-2">
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <select className={inputCls + " !py-1 text-xs"} value={resForm.table}
+                      onChange={(e) => setResForm({ ...resForm, table: e.target.value })}>
+                      <option value="">Table…</option>
+                      {tables.filter((t) => !t.temp).map((t) => <option key={t.table} value={t.table}>{t.table}</option>)}
+                    </select>
+                    <input className={inputCls + " !py-1 text-xs"} type="datetime-local" value={resForm.at}
+                      onChange={(e) => setResForm({ ...resForm, at: e.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <input className={inputCls + " !py-1 text-xs"} placeholder={t("Guest name")} value={resForm.guest}
+                      onChange={(e) => setResForm({ ...resForm, guest: e.target.value })} />
+                    <input className={inputCls + " !py-1 text-xs"} placeholder={t("Phone")} value={resForm.phone}
+                      onChange={(e) => setResForm({ ...resForm, phone: e.target.value })} />
+                  </div>
+                  <div className="flex gap-1.5">
+                    <input className={inputCls + " !w-20 !py-1 text-xs"} placeholder={t("Party")} inputMode="numeric" value={resForm.party}
+                      onChange={(e) => setResForm({ ...resForm, party: e.target.value.replace(/\D/g, "") })} />
+                    <Button className="flex-1 !py-1 text-xs" disabled={busy || !resForm.table || !resForm.guest.trim() || !resForm.at}
+                      onClick={saveReservation}>{t("Reserve")}</Button>
+                    <Button variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => setReserveOpen(false)}>✕</Button>
+                  </div>
+                </div>
+              )}
+              {tables.length > 0 ? (
+                <>
+                  <div className="relative mb-2">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                    <input className={inputCls + " !py-1 pl-8 text-xs"} placeholder={t("Search table…")}
+                      value={tableQuery} onChange={(e) => setTableQuery(e.target.value)} />
+                  </div>
+                  <div className="mb-1 flex flex-wrap gap-1">
+                    {([["all", t("All ({n})", { n: tables.length })], ["available", t("Available ({n})", { n: availableCount })],
+                       ["occupied", t("Occupied ({n})", { n: tables.length - availableCount })]] as const).map(([k, l]) => (
+                      <button key={k} onClick={() => setTableFilter(k)}
+                        className={"rounded-full px-2 py-0.5 text-[11px] font-medium " +
+                          (tableFilter === k ? "bg-brand-600 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200")}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                  {areas.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-1">
+                      {["All", ...areas].map((a) => (
+                        <button key={a} onClick={() => setAreaFilter(a)}
+                          className={"rounded-full px-2 py-0.5 text-[11px] " +
+                            (areaFilter === a ? "bg-zinc-800 font-medium text-white" : "bg-white text-zinc-500 ring-1 ring-zinc-200 hover:ring-zinc-400")}>
+                          {a === "All" ? t("All") : a}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {tableGroups.map(([groupName, group]) => (
+                    <div key={groupName ?? "_"} className="mb-2">
+                      {groupName && (
+                        <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">{groupName}</h4>
+                      )}
+                      <div className="grid grid-cols-3 gap-2">
+                        {group.map((tile) => (
+                          <button key={tile.table}
+                            onClick={() => tile.state === "reserved" ? setResTile(resTile === tile.table ? null : tile.table)
+                              : tile.state === "cleaning" ? cleanTable(tile)
+                                : tile.bills === 0 ? newOrder(tile.table)
+                                  : tile.bills === 1 ? openTab(tile.orders[0].order)
+                                    : setChooser(chooser === tile.table ? null : tile.table)}
+                            className={"relative rounded-xl border p-2 text-left transition " + TILE[tile.state] +
+                              (tile.temp ? " border-dashed" : "") +
+                              (tile.orders.some((b) => b.order === selected) || chooser === tile.table ? " ring-2 ring-brand-600 ring-offset-1" :
+                                tile.bills === 0 && selected === null && table === tile.table ? " ring-2 ring-brand-600 ring-offset-1" : "")}>
+                            {tile.bills > 1 && (
+                              <span className="absolute -right-1.5 -top-1.5 flex items-center gap-0.5 rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                <Users className="size-2.5" />{tile.bills}
+                              </span>
+                            )}
+                            <div className="flex items-baseline justify-between gap-1">
+                              <span className="truncate text-sm font-bold">{tile.table}</span>
+                              {tile.bills > 0 && tile.since && (
+                                <span className="shrink-0 text-[9px] font-medium opacity-60">{ago(tile.since)}</span>
+                              )}
+                            </div>
+                            <div className="truncate text-[10px] opacity-70">
+                              {tile.bills > 0
+                                ? <>{cur()}{inr(tile.order_total)}{tile.guests ? <> · <Users className="inline size-2.5" />{tile.guests}</> : null}</>
+                                : tile.state === "reserved" ? `${t("Res")} ${tile.res_time} · ${tile.res_guest || ""}`
+                                  : tile.state === "cleaning" ? t("Cleaning")
+                                    : tile.seats ? t("{n} seats", { n: tile.seats }) : " "}
+                            </div>
+                          </button>
+                        ))}
+                        {groupName === null && visibleTables.length === 0 && (
+                          <p className="col-span-3 py-3 text-center text-xs text-zinc-400">{t("No tables match.")}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {resTile && (() => {
+                    const t = tables.find((x) => x.table === resTile)
+                    if (!t || t.state !== "reserved") return null
+                    return (
+                      <div className="mb-2 space-y-1.5 rounded-xl border border-violet-200 bg-violet-50 p-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-semibold text-violet-900">
+                            {t.table} · {t.res_time} · {t.res_guest}
+                            {t.res_party ? ` · ${t.res_party} pax` : ""}
+                          </span>
+                          <button onClick={() => setResTile(null)} className="text-violet-400 hover:text-violet-700">✕</button>
+                        </div>
+                        {t.res_phone && <p className="text-[11px] text-violet-700">{t.res_phone}</p>}
+                        <div className="flex gap-1.5">
+                          <Button className="flex-1 !py-1 text-xs" disabled={busy} onClick={() => seatReservation(t)}>Seat now</Button>
+                          <Button variant="outline" className="!px-2 !py-1 text-xs" disabled={busy} onClick={() => closeReservation(t, "No Show")}>No show</Button>
+                          <Button variant="outline" className="!px-2 !py-1 text-xs text-rose-600" disabled={busy} onClick={() => closeReservation(t, "Cancelled")}>Cancel</Button>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                  {/* what the tile colours mean */}
+                  <div className="mb-2 flex flex-wrap gap-x-2.5 gap-y-1 text-[10px] text-zinc-500">
+                    {([["Vacant", "border border-zinc-300 bg-white"],
+                       ["Running", "border border-amber-300 bg-amber-50"],
+                       ["In kitchen", "border border-sky-300 bg-sky-50"],
+                       ["Ready", "border border-emerald-300 bg-emerald-50"],
+                       ["Reserved", "border border-violet-300 bg-violet-50"],
+                       ["Cleaning", "border border-zinc-300 bg-zinc-100"]] as const).map(([l, c]) => (
+                      <span key={l} className="flex items-center gap-1">
+                        <span className={"size-2.5 rounded " + c} />{l}
+                      </span>
+                    ))}
+                  </div>
+                  <button onClick={() => { newOrder(); setOrderType("Dine In"); setCustomTable(true) }}
+                    className="w-full rounded-xl border border-dashed border-zinc-300 px-2 py-1.5 text-xs font-medium text-zinc-500 transition hover:border-brand-500 hover:text-brand-700">
+                    <Plus className="mr-0.5 inline size-3.5" />Temp table
+                  </button>
+                  {chooser && (() => {
+                    const t = tables.find((x) => x.table === chooser)
+                    if (!t) return null
+                    return (
+                      <div className="mt-2 space-y-1 rounded-xl bg-zinc-50 p-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-zinc-500">{t.table} — {t.bills} bills</span>
+                          <button onClick={() => setChooser(null)} className="text-zinc-400 hover:text-zinc-600">✕</button>
+                        </div>
+                        {t.orders.map((b) => (
+                          <button key={b.order} onClick={() => openTab(b.order)}
+                            className={"flex w-full items-center justify-between rounded-lg border px-2 py-1 text-xs transition " + TILE[b.state]}>
+                            <span>{b.label}</span><span className="tabular-nums">{cur()}{inr(b.order_total)}</span>
+                          </button>
+                        ))}
+                        <button onClick={() => newOrder(t.table)}
+                          className="w-full rounded-lg border border-dashed border-zinc-400 px-2 py-1 text-xs text-zinc-600 hover:border-brand-500 hover:text-brand-700">
+                          <Plus className="mr-0.5 inline size-3" />New bill
+                        </button>
+                      </div>
+                    )
+                  })()}
+                </>
+              ) : (
+                <p className="py-2 text-xs text-zinc-400">
+                  No table layout for this outlet yet — add tables (one per line,
+                  <code className="mx-1 rounded bg-zinc-100 px-1">T1:4</code> = 4 seats) on the POS Outlet.
+                </p>
+              )}
+              {looseBills.length > 0 && (
+                <div className="mt-3 border-t border-zinc-100 pt-2">
+                  <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Rooms · takeaway · delivery</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {looseBills.map((o) => (
+                      <button key={o.name} onClick={() => openTab(o.name)}
+                        className={"rounded-lg border px-2 py-1 text-xs transition " +
+                          (selected === o.name ? "border-brand-600 bg-brand-50 font-semibold text-brand-700" : "border-zinc-200 bg-white hover:border-brand-400")}>
+                        {o.label} <span className="tabular-nums text-zinc-400">{cur()}{inr(o.order_total)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {(runningBills.length > 0 || kitchenBills.length > 0) && (
+              <div className="shrink-0 rounded-xl border border-zinc-200 bg-white p-3">
+                <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-zinc-500">Open bills</h3>
+                {runningBills.length > 0 && (
+                  <div className="mb-2">
+                    <p className="mb-1 text-[10px] font-semibold uppercase text-amber-700">Not sent to kitchen</p>
+                    <ul className="space-y-1">
+                      {runningBills.map((o) => (
+                        <li key={o.name}>
+                          <button onClick={() => openTab(o.name)}
+                            className={"flex w-full items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs " +
+                              (selected === o.name ? "ring-2 ring-brand-600" : "")}>
+                            <span className="font-semibold text-amber-900">{o.label}</span>
+                            <span className="tabular-nums text-amber-800">{cur()}{inr(o.order_total)}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {kitchenBills.length > 0 && (
+                  <div>
+                    <p className="mb-1 text-[10px] font-semibold uppercase text-sky-700">In kitchen / not settled</p>
+                    <ul className="space-y-1">
+                      {kitchenBills.map((o) => (
+                        <li key={o.name}>
+                          <button onClick={() => openTab(o.name)}
+                            className={"flex w-full items-center justify-between rounded-lg border border-sky-200 bg-sky-50 px-2 py-1.5 text-xs " +
+                              (selected === o.name ? "ring-2 ring-brand-600" : "")}>
+                            <span className="font-semibold text-sky-900">
+                              {o.label}{o.kot_no ? ` · KOT ${o.kot_no}` : ""}
+                            </span>
+                            <span className="tabular-nums text-sky-800">{cur()}{inr(o.order_total)}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="shrink-0 rounded-xl border border-zinc-200 bg-white p-3">
+              <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-zinc-500">Recent</h3>
+              <ul className="space-y-1">
+                {recent.map((r) => (
+                  <li key={r.name}>
+                    <button disabled={!r.open} onClick={() => openTab(r.name)}
+                      className={"flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-xs " +
+                        (r.open ? "hover:bg-brand-50" : "cursor-default opacity-60")}>
+                      <span className="min-w-0">
+                        <span className="font-medium text-zinc-700">{r.label}</span>
+                        <span className="ml-1 text-zinc-400">· {r.order_type}</span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1.5 tabular-nums">
+                        <span className="font-semibold">{cur()}{inr(r.order_total)}</span>
+                        {r.nc ? <span className="rounded bg-amber-50 px-1 text-[10px] font-bold text-amber-700">NC</span>
+                          : r.paid ? <span className="rounded bg-emerald-50 px-1 text-[10px] font-medium text-emerald-700">{r.payment_mode}</span>
+                            : r.status === "Cancelled" ? <span className="rounded bg-rose-50 px-1 text-[10px] font-medium text-rose-600">✕</span>
+                              : null}
+                        <span className="text-zinc-400">{ago(r.modified)}</span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+                {recent.length === 0 && <p className="py-2 text-center text-xs text-zinc-400">No orders yet today.</p>}
+              </ul>
+            </div>
+    </>
+  )
+
+  return (
+    <div ref={rootRef} className={cn("flex h-full min-h-0 flex-col gap-3", floorOn && "bg-zinc-50 p-3")}>
+      {/* header — the way out of the till is always on screen */}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
+        <h1 className="flex items-center gap-2 text-xl font-bold text-zinc-800">
+          <UtensilsCrossed className="size-5 text-brand-600" />
+          <span className="hidden sm:inline">{t("Restaurant POS")}</span>
+          <select className={inputCls + " !w-auto font-normal"} value={outlet} onChange={(e) => { setOutlet(e.target.value); newOrder() }}>
+            {outlets.map((o) => <option key={o.name} value={o.name}>{o.outlet_name}</option>)}
+          </select>
+        </h1>
+        <div className="flex rounded-xl border border-zinc-200 bg-white p-1 shadow-sm">
+          {ORDER_TYPES.map((ot) => (
+            <button key={ot} onClick={() => { setOrderType(ot); if (selected) newOrder(); }}
+              className={"rounded-lg px-3 py-1.5 text-sm transition " +
+                ((selected && detail ? detail.order_type : orderType) === ot
+                  ? "bg-brand-600 font-semibold text-white"
+                  : "text-zinc-600 hover:bg-zinc-50")}>
+              {t(ot)}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={() => setTablesOpen(true)}
+            className="hidden items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-2.5 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 md:inline-flex lg:hidden">
+            <LayoutGrid className="size-4" />{t("Tables")}
+          </button>
+          <button type="button" onClick={() => setPrintKot((v) => !v)}
+            className={"inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-semibold " +
+              (printKot ? "border-brand-600 bg-brand-50 text-brand-800" : "border-zinc-300 bg-white text-zinc-500")}>
+            <Printer className="size-3.5" />
+            <span className="hidden sm:inline">{printKot ? t("KOT printer on") : t("KOT printer off")}</span>
+          </button>
+          <div className="relative">
+            <button onClick={() => setHelpOpen((v) => !v)}
+              className="rounded-lg border border-zinc-300 bg-white p-2 text-zinc-600 hover:bg-zinc-50"
+              title={t("Keyboard shortcuts")} aria-label={t("Keyboard shortcuts")}>
+              <Keyboard className="size-4" />
+            </button>
+            {helpOpen && (
+              <div className="absolute right-0 top-full z-30 mt-1 w-64 rounded-xl border border-zinc-200 bg-white p-2 shadow-lg">
+                {([["F2", t("New bill")], ["F3", t("Cycle open bills")], ["F4", t("Settle")],
+                   ["F5", t("Hold bill")], ["F6", t("Fire KOT")],
+                   ["Esc", t("Show menus / exit full screen")]] as const).map(([k, l]) => (
+                  <div key={k} className="flex items-center justify-between gap-3 px-1 py-1 text-xs text-zinc-600">
+                    <span>{l}</span>
+                    <kbd className="rounded border border-zinc-300 bg-zinc-50 px-1.5 py-0.5 font-semibold text-zinc-600">{k}</kbd>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {floorOn && (
+            <button type="button" onClick={exitFloor}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-2.5 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50"
+              title={t("Show the app menu (Esc)")}>
+              <Menu className="size-4" />{t("Menu")}
+            </button>
+          )}
+          <button onClick={toggleFocus}
+            className={cn("rounded-lg border p-2",
+              kioskOn
+                ? "border-brand-600 bg-brand-50 text-brand-800"
+                : "border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50")}
+            title={kioskOn ? t("Show PMS menus (Esc)") : t("Focus mode — hide PMS menus")}>
+            <Focus className="size-4" />
+          </button>
+          <button onClick={toggleBrowserFs}
+            className="rounded-lg border border-zinc-300 bg-white p-2 text-zinc-600 hover:bg-zinc-50"
+            title={browserFs ? t("Exit full screen (Esc)") : t("Full screen till")}>
+            {browserFs ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+          </button>
+          <button onClick={() => { exitFloor(); navigate("/dashboard") }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-2.5 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50"
+            title={t("Exit POS — back to the PMS")}>
+            <LogOut className="size-4" />
+            <span className="hidden xl:inline">{t("Exit")}</span>
+          </button>
+          <Button onClick={() => newOrder()}>
+            <Plus className="size-4" />{t("New Bill")}
+            <kbd className="rounded bg-white/20 px-1 text-[10px]">F2</kbd>
+          </Button>
+        </div>
+      </div>
+
+      {/* phone: pane switcher */}
+      <div className="flex shrink-0 rounded-xl border border-zinc-200 bg-white p-1 shadow-sm md:hidden">
+        {([["tables", t("Tables")], ["menu", t("Menu")], ["bill", t("Bill")]] as const).map(([k, l]) => (
+          <button key={k} onClick={() => setMobilePane(k)}
+            className={cn("flex-1 rounded-lg px-3 py-2 text-sm font-medium transition",
+              mobilePane === k ? "bg-brand-600 text-white" : "text-zinc-600")}>
+            {l}{k === "bill" && billItemCount > 0 ? ` · ${Math.round(billItemCount)}` : ""}
+          </button>
+        ))}
+      </div>
+
+      {error && <div className="shrink-0 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</div>}
+      {printNote && (
+        <div className="flex shrink-0 items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          <span>{printNote}</span>
+          <button className="text-xs font-semibold" onClick={() => setPrintNote(null)}>{t("Dismiss")}</button>
+        </div>
+      )}
+      {open.length > 0 && (
+        <div className="shrink-0">
+          <RunningStrip open={open} selected={selected} onOpen={openTab} />
+        </div>
+      )}
+
+      <div className="flex min-h-0 flex-1 gap-3">
+        {/* ── left: tables + recent (desktop column) ── */}
+        <div className="hidden min-h-0 w-[19rem] shrink-0 flex-col gap-2 overflow-y-auto lg:flex xl:w-[21rem]">
+          {tablesPane}
+        </div>
+        {/* tables as their own pane on phones */}
+        <div className={cn("min-h-0 w-full flex-col gap-2 overflow-y-auto md:hidden",
+          mobilePane === "tables" ? "flex" : "hidden")}>
+          {tablesPane}
+        </div>
+
+        {/* ── centre: menu ── */}
+        <div className={cn("min-h-0 min-w-0 flex-1 md:overflow-y-auto",
+          mobilePane === "menu" ? "block" : "hidden md:block")}>
+            <div className="relative mb-2">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+              <input className={inputCls + " pl-9"} placeholder={t("Search menu items…")} value={query} onChange={(e) => setQuery(e.target.value)} />
+            </div>
+            <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
+              {["All", ...cats.map((c) => c.category)].map((c) => (
+                <button key={c} onClick={() => { setCat(c); setQuery("") }}
+                  className={"shrink-0 rounded-full px-3 py-1 text-sm font-medium transition " +
+                    (cat === c && !query.trim() ? "bg-brand-600 text-white" : "bg-white text-zinc-600 ring-1 ring-zinc-200 hover:ring-brand-400")}>
+                  {c === "All" ? t("All") : c}
+                </button>
+              ))}
+            </div>
+            {shownItems ? (
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-3 2xl:grid-cols-4">
+                {shownItems.map((it) => <MenuCard key={it.name} it={it} onAdd={() => addToCart(it)} />)}
+                {shownItems.length === 0 && <p className="col-span-full py-6 text-center text-sm text-zinc-400">{t("No matches.")}</p>}
+              </div>
+            ) : (
+              cats.map((c) => (
+                <div key={c.category} className="mb-4">
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">{c.category}</h3>
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-3 2xl:grid-cols-4">
+                    {c.items.map((it) => <MenuCard key={it.name} it={it} onAdd={() => addToCart(it)} />)}
+                  </div>
+                </div>
+              ))
+            )}
+        </div>
+
+        {/* ── right: the bill ── */}
+        <div className={cn(
+          "min-h-0 w-full flex-col rounded-xl border border-zinc-200 bg-white",
+          "md:w-[21rem] md:shrink-0 md:overflow-hidden xl:w-[24rem]",
+          mobilePane === "bill" ? "flex" : "hidden md:flex",
+        )}>
+          {/* zone 1: who / where — pinned above the items */}
+          <div className="shrink-0 border-b border-zinc-100 p-3 pb-2">
+            {/* who / where */}
+            {selected && detail ? (
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="flex items-center gap-1.5 font-semibold">
+                  {orderLabel(detail)}
+                  {detail.guests ? <span className="flex items-center gap-0.5 text-xs font-normal text-zinc-400"><Users className="size-3" />{detail.guests}</span> : null}
+                  {detail.table_no && detail.status !== "Delivered" && (
+                    <button title="New bill on this table (another party)"
+                      onClick={() => newOrder(detail.table_no!)}
+                      className="rounded-md border border-dashed border-zinc-300 px-1.5 py-0.5 text-[11px] font-medium text-zinc-500 hover:border-brand-500 hover:text-brand-700">
+                      + bill
+                    </button>
+                  )}
+                </h2>
+                <span className="text-xs text-zinc-400">
+                  {detail.kot_no ? `KOT #${detail.kot_no} · ` : ""}{detail.status}
+                </span>
+              </div>
+            ) : (
+              <div className="mb-3 space-y-2">
+                {orderType === "Dine In" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {tables.length > 0 && !customTable ? (
+                      <select className={inputCls} value={table}
+                        onChange={(e) => {
+                          if (e.target.value === "__custom__") { setCustomTable(true); setTable("") }
+                          else setTable(e.target.value)
+                        }}>
+                        <option value="">Table…</option>
+                        {tables.map((t) => (
+                          <option key={t.table} value={t.table}>
+                            {t.table}{t.seats ? ` (${t.seats})` : ""}{t.bills > 0 ? ` · ${t.bills} bill${t.bills > 1 ? "s" : ""}` : ""}
+                          </option>
+                        ))}
+                        <option value="__custom__">Temp / custom table…</option>
+                      </select>
+                    ) : (
+                      <div className="flex gap-1">
+                        <input autoFocus={customTable} className={inputCls} placeholder="Table name"
+                          value={table} onChange={(e) => setTable(e.target.value)} />
+                        {customTable && (
+                          <Button variant="ghost" className="!px-2" onClick={() => { setCustomTable(false); setTable("") }}>✕</Button>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1 rounded-lg border border-zinc-300 px-2">
+                      <Users className="size-3.5 text-zinc-400" />
+                      <input className="w-full bg-transparent py-1.5 text-sm focus:outline-none" placeholder="Guests"
+                        inputMode="numeric" value={guests} onChange={(e) => setGuests(e.target.value.replace(/\D/g, ""))} />
+                    </div>
+                  </div>
+                )}
+                {orderType === "Room Service" && (
+                  <select className={inputCls} value={room} onChange={(e) => setRoom(e.target.value)}>
+                    <option value="">Room…</option>
+                    {rooms.map((r) => <option key={r.name} value={r.name}>Room {r.room_number}</option>)}
+                  </select>
+                )}
+                {isNewCustomerType && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input className={inputCls} placeholder="Customer name" value={custName} onChange={(e) => setCustName(e.target.value)} />
+                      <input className={inputCls} placeholder="Phone" value={custPhone} onChange={(e) => setCustPhone(e.target.value)} />
+                    </div>
+                    {orderType === "Delivery" && (
+                      <input className={inputCls} placeholder="Delivery address" value={custAddr} onChange={(e) => setCustAddr(e.target.value)} />
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* zone 2: line items — the only scroll area in the bill */}
+          <div className="min-h-0 flex-1 p-3 md:overflow-y-auto">
+            {/* items */}
+            <div className="mb-1 flex items-center justify-between">
+              <h3 className="text-sm font-medium text-zinc-500">{t("Order items")}</h3>
+              {!selected && cart.length > 0 && (
+                <button onClick={() => setCart([])} className="text-xs text-zinc-400 hover:text-rose-500">{t("Clear all")}</button>
+              )}
+            </div>
+
+            {selected && detail && (
+              <>
+                {!!detail.nc && (
+                  <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-800">
+                    <span className="font-bold">{t("COMPLIMENTARY")}</span>
+                    <span className="ml-1">{t("auth")}: {detail.nc_authorized_by}{detail.nc_note ? ` · ${detail.nc_note}` : ""}</span>
+                  </div>
+                )}
+                {splitMode && (
+                  <p className="mb-1 rounded-lg bg-brand-50 px-2 py-1 text-xs text-brand-700">
+                    {t("Tick the lines moving to the new bill.")}
+                  </p>
+                )}
+                <ul className="mb-2 space-y-1 border-b border-zinc-100 pb-2 text-sm">
+                  {detail.items.map((it) => (
+                    <li key={it.row} className="flex min-h-9 items-center justify-between gap-1">
+                      <span className={"flex items-center gap-1.5 " + (it.voided ? "text-zinc-400 line-through" : "")}>
+                        {splitMode && !it.voided && (
+                          <input type="checkbox" className="accent-brand-600"
+                            checked={splitSel.has(it.row)} onChange={() => toggleSplitSel(it.row)} />
+                        )}
+                        <span>
+                          {Math.round(it.qty)}× {it.item_name}
+                          {!it.voided && it.kot_status !== "New" && <span className="ml-1 text-[10px] text-zinc-400">{it.kot_status}</span>}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="tabular-nums">{cur()}{inr(it.amount)}</span>
+                        {!splitMode && !it.voided && detail.status !== "Delivered" && (
+                          <button title="Void line" onClick={() => { setVoiding(it); setVoidReason("") }}
+                            className="-my-1 rounded-md p-1.5 text-zinc-300 transition hover:bg-rose-50 hover:text-rose-500">
+                            <XCircle className="size-4" />
+                          </button>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {voiding && (
+                  <div className="mb-2 rounded-lg border border-rose-200 bg-rose-50 p-2">
+                    <p className="mb-1 text-xs font-medium text-rose-700">Void {voiding.item_name} — reason required</p>
+                    <div className="flex gap-1">
+                      <input autoFocus className={inputCls + " !py-1 text-xs"} placeholder="e.g. spilled, wrong item"
+                        value={voidReason} onChange={(e) => setVoidReason(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && confirmVoid()} />
+                      <Button variant="outline" className="!px-2 !py-1 text-xs font-semibold text-rose-600" disabled={busy || !voidReason.trim()} onClick={confirmVoid}>Void</Button>
+                      <Button variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => setVoiding(null)}>✕</Button>
+                    </div>
+                  </div>
+                )}
+                {splitMode && (
+                  <div className="mb-2 flex gap-1.5">
+                    <Button className="flex-1" disabled={busy || splitSel.size === 0 ||
+                      splitSel.size >= detail.items.filter((i) => !i.voided).length}
+                      onClick={confirmSplit}>
+                      <Scissors className="size-4" />Move {splitSel.size || ""} to new bill
+                    </Button>
+                    <Button variant="ghost" onClick={() => { setSplitMode(false); setSplitSel(new Set()) }}>✕</Button>
+                  </div>
+                )}
+                {cart.length > 0 && <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">New round</h4>}
+              </>
+            )}
+
+            {cart.length === 0 && !(selected && detail) ? (
+              <p className="py-4 text-center text-sm text-zinc-400">{t("Tap menu items to add.")}</p>
+            ) : (
+              <div className="space-y-2">
+                {cart.map((l) => (
+                  <div key={l.menu_item} className="border-b border-zinc-100 pb-2">
+                    <div className="flex min-h-11 items-center gap-1.5">
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{l.item_name}</span>
+                      <button onClick={() => setQty(l.menu_item, -1)} aria-label="One less"
+                        className="grid size-9 shrink-0 place-items-center rounded-lg border border-zinc-300 text-zinc-600 hover:bg-zinc-50"><Minus className="size-4" /></button>
+                      <span className="w-6 shrink-0 text-center text-base font-semibold tabular-nums">{l.qty}</span>
+                      <button onClick={() => setQty(l.menu_item, 1)} aria-label="One more"
+                        className="grid size-9 shrink-0 place-items-center rounded-lg border border-zinc-300 text-zinc-600 hover:bg-zinc-50"><Plus className="size-4" /></button>
+                      <span className="w-14 shrink-0 text-right text-sm font-semibold tabular-nums">{cur()}{inr(l.qty * l.price)}</span>
+                      <button onClick={() => setQty(l.menu_item, -l.qty)} aria-label="Remove line"
+                        className="grid size-9 shrink-0 place-items-center rounded-lg text-zinc-300 hover:bg-rose-50 hover:text-rose-500"><Trash2 className="size-4" /></button>
+                    </div>
+                    <input className="mt-1 w-full rounded border border-zinc-200 px-2 py-1 text-xs" placeholder="Instructions"
+                      value={l.instructions} onChange={(e) => setInstr(l.menu_item, e.target.value)} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+          </div>
+
+          {/* zone 3: totals + actions — always visible, sticky on phones */}
+          <div className="sticky bottom-0 z-20 shrink-0 space-y-2 rounded-b-xl border-t border-zinc-100 bg-white p-3 md:static">
+            <div className="space-y-1 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500">{t("Discount")}</span>
+                {discOpen ? (
+                  <span className="flex items-center gap-1">
+                    <input autoFocus className={inputCls + " !w-24 !py-0.5 text-xs"} placeholder={`${cur()}`} inputMode="numeric"
+                      value={discount} onChange={(e) => setDiscount(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && applyDiscount()} />
+                    <Button variant="outline" className="!px-2 !py-0.5 text-xs" disabled={busy} onClick={applyDiscount}>OK</Button>
+                  </span>
+                ) : (
+                  <button onClick={() => setDiscOpen(true)} className="flex items-center gap-1 text-xs font-medium text-brand-700 hover:underline">
+                    <Tag className="size-3" />
+                    {(selected && detail ? detail.discount_amount : disc) > 0
+                      ? `−${cur()}${inr(selected && detail ? detail.discount_amount : disc)}`
+                      : t("Add discount")}
+                  </button>
+                )}
+              </div>
+              <div className="flex justify-between text-zinc-500"><span>{t("Subtotal")}</span><span className="tabular-nums">{cur()}{inr2(taxable)}</span></div>
+              <div className="flex justify-between text-xs text-zinc-400"><span>{t("CGST ({rate}%)", { rate: gstRate / 2 })}</span><span className="tabular-nums">{cur()}{inr2(gstAmt / 2)}</span></div>
+              <div className="flex justify-between text-xs text-zinc-400"><span>{t("SGST ({rate}%)", { rate: gstRate / 2 })}</span><span className="tabular-nums">{cur()}{inr2(gstAmt / 2)}</span></div>
+              <div className="flex items-baseline justify-between border-t border-zinc-100 pt-1 font-bold">
+                <span>{t("Total")}</span>
+                <span className="text-2xl tabular-nums">{cur()}{inr2(grand)}</span>
+              </div>
+            </div>
+
+            {ncOpen && selected && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-2">
+                <p className="mb-1 text-xs font-medium text-amber-800">Complimentary (no charge) - who authorized?</p>
+                <div className="flex gap-1">
+                  <select className={inputCls + " !w-28 !py-1 text-xs"} value={ncBy} onChange={(e) => setNcBy(e.target.value)}>
+                    {["Captain", "Chef", "Manager", "GM", "Management", "Owner"].map((w) => <option key={w}>{w}</option>)}
+                  </select>
+                  <input autoFocus className={inputCls + " !py-1 text-xs"} placeholder="Reference (birthday, complaint #, promo…)"
+                    value={ncNote} onChange={(e) => setNcNote(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && saveNc()} />
+                  <Button variant="outline" className="!px-2 !py-1 text-xs font-semibold text-amber-700" disabled={busy} onClick={() => saveNc()}>NC</Button>
+                  <Button variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => setNcOpen(false)}>✕</Button>
+                </div>
+              </div>
+            )}
+
+            {cancelling && (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 p-2">
+                <p className="mb-1 text-xs font-medium text-rose-700">Cancel this order - reason required</p>
+                <div className="flex gap-1">
+                  <input autoFocus className={inputCls + " !py-1 text-xs"} placeholder="e.g. guest left"
+                    value={cancelReason} onChange={(e) => setCancelReason(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && confirmCancel()} />
+                  <Button variant="outline" className="!px-2 !py-1 text-xs font-semibold text-rose-600" disabled={busy || !cancelReason.trim()} onClick={confirmCancel}>Cancel order</Button>
+                  <Button variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => setCancelling(false)}>✕</Button>
+                </div>
+              </div>
+            )}
+
+            {/* actions — every option visible, nothing under a popover or scroll */}
+            <div className="grid grid-cols-3 gap-1.5">
+              <Button variant="outline" className="h-11 flex-col gap-0.5 !px-1 text-[11px] font-semibold leading-none"
+                disabled={busy || !selected} onClick={printBill}>
+                <Receipt className="size-4" />{t("Print bill")}
+              </Button>
+              <Button variant="outline" className="h-11 flex-col gap-0.5 !px-1 text-[11px] font-semibold leading-none"
+                disabled={busy || !selected || !detail || detail.items.filter((i) => !i.voided).length < 2 || detail.status === "Delivered"}
+                onClick={() => { setSplitMode(true); setSplitSel(new Set()) }}>
+                <Scissors className="size-4" />{t("Split")}
+              </Button>
+              <Button variant="outline" className="h-11 flex-col gap-0.5 !px-1 text-[11px] font-semibold leading-none text-amber-700"
+                disabled={busy || !selected || !detail || detail.status === "Delivered"}
+                onClick={() => detail?.nc ? saveNc(true) : setNcOpen(true)}>
+                <Gift className="size-4" />{detail?.nc ? t("Undo NC") : t("Complimentary")}
+              </Button>
+              <Button variant="outline" className="h-11 flex-col gap-0.5 !px-1 text-[11px] font-semibold leading-none"
+                disabled={busy || !!selected || cart.length === 0} onClick={hold}>
+                <PauseCircle className="size-4" />{t("Hold bill")}
+              </Button>
+              <Button variant="outline" className="h-11 flex-col gap-0.5 !px-1 text-[11px] font-semibold leading-none"
+                disabled={busy || !selected || !detail?.kot_no} onClick={reprintKot}>
+                <Printer className="size-4" />{t("Reprint KOT")}
+              </Button>
+              <Button variant="outline" className="h-11 flex-col gap-0.5 !px-1 text-[11px] font-semibold leading-none text-rose-600"
+                disabled={busy || !selected} onClick={() => { setCancelling(true); setCancelReason("") }}>
+                <Ban className="size-4" />{t("Cancel")}
+              </Button>
+            </div>
+
+            <Button variant="outline" className="h-11 w-full"
+              disabled={busy || cart.length === 0}
+              onClick={kotAction}>
+              <Send className="size-4" />{selected ? t("Add round & fire KOT") : t("Send to kitchen")}
+              <kbd className="rounded bg-zinc-100 px-1 text-[10px] text-zinc-500">F6</kbd>
+            </Button>
+
+            {settling && selected && detail ? (
+              /* the settle sheet: every way a bill can close, including zero */
+              <div className="space-y-1.5 rounded-xl border border-brand-200 bg-brand-50/60 p-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wide text-brand-800">
+                    Settle · {cur()}{inr2(grand)}
+                  </span>
+                  <button className="rounded p-1 text-zinc-400 hover:text-zinc-700" aria-label="Close"
+                    onClick={() => { setSettling(false); setSheetNc(false) }}>
+                    <XCircle className="size-4" />
+                  </button>
+                </div>
+                {detail.nc ? (
+                  <Button className="h-12 w-full" disabled={busy} onClick={settleDeliver}>
+                    <Gift className="size-4" />Close complimentary bill · {cur()}0
+                  </Button>
+                ) : sheetNc ? (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-amber-800">Complimentary (no charge) - who authorized?</p>
+                    <div className="flex gap-1.5">
+                      <select className={inputCls + " !w-28 !py-1 text-xs"} value={ncBy} onChange={(e) => setNcBy(e.target.value)}>
+                        {["Captain", "Chef", "Manager", "GM", "Management", "Owner"].map((w) => <option key={w}>{w}</option>)}
+                      </select>
+                      <input autoFocus className={inputCls + " !py-1 text-xs"} placeholder="Reference (birthday, complaint #, promo…)"
+                        value={ncNote} onChange={(e) => setNcNote(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && settleNc()} />
+                    </div>
+                    <div className="flex gap-1.5">
+                      <Button className="h-11 flex-1" disabled={busy} onClick={settleNc}>
+                        <Gift className="size-4" />Mark NC & close at {cur()}0
+                      </Button>
+                      <Button variant="ghost" className="h-11" onClick={() => setSheetNc(false)}>Back</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(["Cash", "Card", "UPI"] as const).map((m) => (
+                        <Button key={m} className="h-12 justify-center text-base" disabled={busy} onClick={() => settle(m)}>{m}</Button>
+                      ))}
+                    </div>
+                    {detail.room && (
+                      <Button variant="outline" className="h-11 w-full" disabled={busy} onClick={settleDeliver}>
+                        <BedDouble className="size-4" />Deliver & post to Room {detail.room.split("-").pop()}
+                      </Button>
+                    )}
+                    <Button variant="outline" className="h-11 w-full text-amber-700" disabled={busy} onClick={() => setSheetNc(true)}>
+                      <Gift className="size-4" />Complimentary — close at {cur()}0
+                    </Button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <Button className="h-12 w-full text-base"
+                disabled={busy || (selected ? !detail : cart.length === 0)}
+                onClick={proceedToPay}>
+                <Wallet className="size-5" />
+                {selected && detail?.nc ? t("Close complimentary bill")
+                  : selected && detail?.room ? t("Settle / post to room") : t("Settle")}
+                <kbd className="rounded bg-white/20 px-1 text-[10px]">F4</kbd>
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* phone: the bill's essentials ride along on the other panes */}
+      {mobilePane !== "bill" && (cart.length > 0 || selected) && (
+        <div className="sticky bottom-2 z-30 flex shrink-0 items-center gap-2 rounded-xl border border-zinc-200 bg-white p-2 shadow-lg md:hidden">
+          <button onClick={() => setMobilePane("bill")} className="min-w-0 flex-1 text-left">
+            <div className="truncate text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+              {Math.round(billItemCount)} item{billItemCount === 1 ? "" : "s"}
+              {selected && detail ? ` · ${orderLabel(detail)}` : ""}
+            </div>
+            <div className="text-lg font-bold tabular-nums">{cur()}{inr2(grand)}</div>
+          </button>
+          <Button variant="outline" className="h-11" onClick={() => setMobilePane("bill")}>{t("View bill")}</Button>
+          <Button className="h-11" disabled={busy || (selected ? !detail : cart.length === 0)} onClick={proceedToPay}>
+            <Wallet className="size-4" />{t("Settle")}
+          </Button>
+        </div>
+      )}
+
+      {/* tablet: tables drawer */}
+      {tablesOpen && (
+        <div className="fixed inset-0 z-40 hidden md:block lg:hidden">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setTablesOpen(false)} />
+          <div className="absolute inset-y-0 left-0 flex w-[22rem] flex-col gap-2 overflow-y-auto bg-zinc-50 p-3 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-zinc-700">{t("Tables & running bills")}</h2>
+              <button className="rounded-md p-1.5 text-zinc-400 hover:text-zinc-700" aria-label={t("Close")}
+                onClick={() => setTablesOpen(false)}>
+                <XCircle className="size-4" />
+              </button>
+            </div>
+            {tablesPane}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RunningStrip({
+  open, selected, onOpen,
+}: {
+  open: OpenOrder[]
+  selected: string | null
+  onOpen: (name: string) => void
+}) {
+  const { t } = useT()
+  if (!open.length) return null
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1">
+      {open.map((o) => {
+        const tone = !o.kot_fired
+          ? "border-amber-400 bg-amber-50 text-amber-950"
+          : o.pending > 0
+            ? "border-sky-400 bg-sky-50 text-sky-950"
+            : "border-emerald-400 bg-emerald-50 text-emerald-950"
+        const tag = !o.kot_fired ? t("Not fired") : o.pending > 0 ? t("In kitchen") : t("Ready / unpaid")
+        return (
+          <button key={o.name} onClick={() => onOpen(o.name)}
+            className={"flex min-w-[9.5rem] shrink-0 flex-col rounded-xl border-2 px-3 py-2 text-left " + tone +
+              (selected === o.name ? " ring-2 ring-brand-600 ring-offset-1" : "")}>
+            <span className="truncate text-sm font-bold">{o.label}</span>
+            <span className="mt-0.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide opacity-80">
+              <Clock className="size-3" />{tag}
+            </span>
+            <span className="mt-0.5 text-xs font-semibold tabular-nums">
+              {cur()}{inr(o.order_total)}
+              {o.kot_no ? ` · KOT ${o.kot_no}` : ""}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** The Indian FSSAI mark: green dot in a square = veg, maroon triangle =
+ *  non-veg. Shape carries it, so it survives colour-blindness and sun glare. */
+function VegMark({ veg }: { veg: number }) {
+  const { t } = useT()
+  return (
+    <span aria-label={veg ? t("Veg") : t("Non-veg")}
+      className={"grid size-3.5 shrink-0 place-items-center rounded-[3px] border-2 " +
+        (veg ? "border-emerald-600" : "border-rose-700")}>
+      {veg ? (
+        <span className="size-1 rounded-full bg-emerald-600" />
+      ) : (
+        <span className="size-0 border-x-[2.5px] border-b-[4px] border-x-transparent border-b-rose-700" />
+      )}
+    </span>
+  )
+}
+
+function MenuCard({ it, onAdd }: { it: MenuItem; onAdd: () => void }) {
+  return (
+    <button onClick={onAdd}
+      className="flex min-h-[4.25rem] flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white text-left transition hover:border-brand-400 hover:shadow-sm active:scale-[0.98]">
+      {it.image && <img src={it.image} alt="" className="h-20 w-full object-cover" />}
+      <div className="flex flex-1 flex-col justify-between p-2.5">
+        <div className="flex items-center gap-1.5">
+          <VegMark veg={it.is_veg} />
+          <span className="truncate text-sm font-medium">{it.item_name}</span>
+        </div>
+        <div className="mt-1 flex items-center justify-between">
+          <span className="text-sm font-bold tabular-nums text-zinc-800">{cur()}{inr(it.price)}</span>
+          <Plus className="size-4 text-brand-600" />
+        </div>
+      </div>
+    </button>
+  )
+}

@@ -1,0 +1,17 @@
+[pre_model_sync]
+# Patches added in this section will be executed before doctypes are migrated
+# Read docs to understand patches: https://frappeframework.com/docs/v14/user/en/database-migrations
+
+[post_model_sync]
+# Patches added in this section will be executed after doctypes are migrated
+kamra.patches.v23.backfill_action_log_approval_status
+kamra.patches.v24.split_actor_from_agent_name
+kamra.patches.v25.backfill_property_country
+kamra.patches.v26.set_site_favicon
+kamra.patches.v27.backfill_sellable_units
+kamra.patches.v28.backfill_property_kind
+kamra.patches.v29.backfill_booking_mode
+kamra.patches.v30.ensure_turnover_profiles
+kamra.patches.v31.backfill_listing_slugs
+kamra.patches.v32.seed_cashier_ledger
+kamra.patches.v33.seed_banquet_checklists

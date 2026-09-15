@@ -1,0 +1,228 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "format:AAL-{YYYY}-{######}",
+ "creation": "2026-07-04 13:57:42.075855",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "agent_name",
+  "actor",
+  "action_type",
+  "column_break_a",
+  "autonomy",
+  "approval_status",
+  "action_channel",
+  "sb_ref",
+  "reference_doctype",
+  "reference_name",
+  "executed_at",
+  "column_break_b",
+  "property",
+  "minutes_saved",
+  "approver",
+  "sb_snapshots",
+  "before_snapshot",
+  "column_break_snap",
+  "after_snapshot",
+  "sb_why",
+  "rationale"
+ ],
+ "fields": [
+  {
+   "description": "Which agent (or \"human\") performed the action",
+   "fieldname": "agent_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Agent Name"
+  },
+  {
+   "fieldname": "actor",
+   "fieldtype": "Link",
+   "label": "Actor (User)",
+   "options": "User",
+   "description": "The signed-in user who performed or triggered this action"
+  },
+  {
+   "fieldname": "action_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Action Type",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_a",
+   "fieldtype": "Column Break",
+   "label": "Column Break A"
+  },
+  {
+   "default": "Full",
+   "fieldname": "autonomy",
+   "fieldtype": "Select",
+   "label": "Autonomy",
+   "options": "Full\nSuggest\nApproved"
+  },
+  {
+   "default": "Executed",
+   "description": "Executed: ran under Full autonomy. Suggested: draft returned, not applied. Pending: awaiting human approval. Approved / Rejected: outcome of a pending item.",
+   "fieldname": "approval_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Executed\nSuggested\nPending\nApproved\nRejected"
+  },
+  {
+   "fieldname": "action_channel",
+   "fieldtype": "Select",
+   "label": "Channel",
+   "options": "\nDesk\nVoice\nWhatsApp\nAPI"
+  },
+  {
+   "fieldname": "sb_ref",
+   "fieldtype": "Section Break",
+   "label": "Reference"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference Doctype",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Reference Name",
+   "options": "reference_doctype"
+  },
+  {
+   "description": "When the underlying action actually ran (may differ from creation for Pending \u2192 Approved rows)",
+   "fieldname": "executed_at",
+   "fieldtype": "Datetime",
+   "label": "Executed At"
+  },
+  {
+   "fieldname": "column_break_b",
+   "fieldtype": "Column Break",
+   "label": "Column Break B"
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Property"
+  },
+  {
+   "description": "Estimated staff minutes avoided by this action",
+   "fieldname": "minutes_saved",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Minutes Saved"
+  },
+  {
+   "description": "Set when a Pending action is Approved or Rejected \u2014 the human on the hook",
+   "fieldname": "approver",
+   "fieldtype": "Link",
+   "label": "Approver",
+   "options": "User"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "sb_snapshots",
+   "fieldtype": "Section Break",
+   "label": "Snapshots (undo)"
+  },
+  {
+   "description": "JSON of the reference doc immediately before the action ran \u2014 enables undo and audit diffs",
+   "fieldname": "before_snapshot",
+   "fieldtype": "Long Text",
+   "label": "Before Snapshot"
+  },
+  {
+   "fieldname": "column_break_snap",
+   "fieldtype": "Column Break",
+   "label": "Column Break Snap"
+  },
+  {
+   "description": "JSON of the reference doc immediately after the action ran",
+   "fieldname": "after_snapshot",
+   "fieldtype": "Long Text",
+   "label": "After Snapshot"
+  },
+  {
+   "fieldname": "sb_why",
+   "fieldtype": "Section Break",
+   "label": "Explainability"
+  },
+  {
+   "description": "Human-readable reason the agent took this action",
+   "fieldname": "rationale",
+   "fieldtype": "Small Text",
+   "label": "Rationale"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-04 13:57:42.075855",
+ "modified_by": "Administrator",
+ "module": "Kamra",
+ "name": "Agent Action Log",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Hotel Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Front Desk"
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance"
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Kamra Agent",
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

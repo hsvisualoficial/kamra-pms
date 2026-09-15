@@ -1,0 +1,44 @@
+name: Bug report
+description: Something in Kamra doesn't work as documented
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Kamra version
+      description: From Desk → Help → About, or `bench version` (e.g. 2.0.0, or "nightly @ <sha>")
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How is Kamra installed?
+      options:
+        - Frappe Cloud
+        - Self-hosted (bench)
+        - Self-hosted (Docker)
+        - demo/nightly.kamrapms.com
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead. Screenshots welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Front Desk → Calendar
+        2. Click a cell …
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / traceback
+      description: Browser console errors or the traceback from `bench --site <site> console` / Error Log doctype.
+      render: shell

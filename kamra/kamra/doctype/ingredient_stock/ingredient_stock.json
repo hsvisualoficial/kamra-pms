@@ -1,0 +1,126 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:{outlet}::{ingredient}",
+ "creation": "2026-07-16 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "property",
+  "outlet",
+  "ingredient",
+  "column_break_a",
+  "qty_on_hand",
+  "par_level",
+  "last_counted_at",
+  "last_counted_by"
+ ],
+ "fields": [
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Property",
+   "reqd": 1
+  },
+  {
+   "fieldname": "outlet",
+   "fieldtype": "Link",
+   "label": "Outlet",
+   "options": "POS Outlet",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "ingredient",
+   "fieldtype": "Link",
+   "label": "Ingredient",
+   "options": "Ingredient",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_a",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "qty_on_hand",
+   "fieldtype": "Float",
+   "label": "On Hand",
+   "in_list_view": 1,
+   "description": "MAY GO NEGATIVE, and that is deliberate. Negative means the count is stale, not that the system is broken - service is never blocked on a number. Do not clamp this at zero: it would destroy the only signal that says 'recount me'."
+  },
+  {
+   "fieldname": "par_level",
+   "fieldtype": "Float",
+   "label": "Par Level",
+   "in_list_view": 1,
+   "description": "At or below this, the ingredient shows as LOW. Zero means no par set - it never shows LOW."
+  },
+  {
+   "fieldname": "last_counted_at",
+   "fieldtype": "Datetime",
+   "label": "Last Counted",
+   "read_only": 1,
+   "description": "A negative balance's whole message is 'this count is stale' - which is only meaningful next to when it was last counted."
+  },
+  {
+   "fieldname": "last_counted_by",
+   "fieldtype": "Link",
+   "label": "Counted By",
+   "options": "User",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-07-16 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Kamra",
+ "name": "Ingredient Stock",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Hotel Admin"
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance"
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Front Desk"
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Kamra Agent"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

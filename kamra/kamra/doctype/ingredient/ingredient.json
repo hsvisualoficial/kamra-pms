@@ -1,0 +1,137 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:ING-{#####}",
+ "creation": "2026-07-16 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "property",
+  "ingredient_name",
+  "category",
+  "column_break_a",
+  "uom",
+  "cost_per_unit",
+  "gst_rate",
+  "is_active"
+ ],
+ "fields": [
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Property",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ingredient_name",
+   "fieldtype": "Data",
+   "label": "Ingredient",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Data",
+   "label": "Category",
+   "in_list_view": 1,
+   "description": "Produce, Dairy, Dry Goods, Bar - free text, like a menu item's category."
+  },
+  {
+   "fieldname": "column_break_a",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Select",
+   "label": "Unit",
+   "options": "kg\ng\nL\nml\npc\nbottle\npacket",
+   "default": "kg",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "One unit per ingredient, always. Recipes and purchases both use it, so there is never a conversion to get wrong. Buying in kg but cooking in g? Define the ingredient in g."
+  },
+  {
+   "fieldname": "cost_per_unit",
+   "fieldtype": "Currency",
+   "label": "Cost / Unit",
+   "in_list_view": 1,
+   "description": "Last known cost, used to value wastage. Indicative only - this is not FIFO or moving-average costing and does not tie to the books."
+  },
+  {
+   "fieldname": "gst_rate",
+   "fieldtype": "Percent",
+   "label": "Input GST %",
+   "default": "5",
+   "description": "The tax paid on buying this. Claimable as input credit only where the output supply allows it."
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active",
+   "default": "1"
+  }
+ ],
+ "links": [],
+ "modified": "2026-07-31 14:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Kamra",
+ "name": "Ingredient",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Hotel Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Front Desk"
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Kamra Agent"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "ingredient_name",
+ "track_changes": 1
+}

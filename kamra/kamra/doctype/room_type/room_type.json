@@ -1,0 +1,409 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "format:{property}-{room_type_code}",
+ "creation": "2026-07-04 13:57:41.794924",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "property",
+  "room_type_code",
+  "column_break_a",
+  "room_type_name",
+  "listing_slug",
+  "room_category",
+  "description",
+  "sb_location",
+  "location_name",
+  "location_slug",
+  "location_address",
+  "column_break_loc",
+  "google_maps_url",
+  "latitude",
+  "longitude",
+  "sb_pricing",
+  "base_price",
+  "base_occupancy",
+  "single_occupancy_price",
+  "column_break_p",
+  "extra_adult_price",
+  "extra_bed_price",
+  "max_extra_beds",
+  "sb_children",
+  "free_child_age",
+  "child_age_limit",
+  "column_break_ch",
+  "child_price",
+  "tax_percent",
+  "sb_capacity",
+  "adults_capacity",
+  "children_capacity",
+  "max_total_occupants",
+  "bed_type",
+  "column_break_at",
+  "room_view",
+  "smoking_allowed",
+  "air_conditioning",
+  "bathroom",
+  "kitchen",
+  "amenities",
+  "image",
+  "sb_media",
+  "media",
+  "disabled",
+  "overbooking_pct"
+ ],
+ "fields": [
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Property",
+   "reqd": 1
+  },
+  {
+   "description": "Short unique code per property, e.g. DELUXE",
+   "fieldname": "room_type_code",
+   "fieldtype": "Data",
+   "label": "Room Type Code",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_a",
+   "fieldtype": "Column Break",
+   "label": "Column Break A"
+  },
+  {
+   "fieldname": "room_type_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Room Type Name",
+   "reqd": 1
+  },
+  {
+   "description": "Public URL slug for this listing (e.g. waterfront-ac-room). Used at /stay/your-slug on the booking engine.",
+   "fieldname": "listing_slug",
+   "fieldtype": "Data",
+   "label": "Listing Slug"
+  },
+  {
+   "default": "Private",
+   "fieldname": "room_category",
+   "fieldtype": "Select",
+   "label": "Room Category",
+   "options": "Villa\nPrivate\nShared"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "sb_location",
+   "fieldtype": "Section Break",
+   "label": "Location",
+   "description": "Only fill in when this room type sits at a different address than the property - e.g. a multi-villa portfolio. Leave blank to inherit the property's address on the booking engine."
+  },
+  {
+   "fieldname": "location_name",
+   "fieldtype": "Data",
+   "label": "Location Name",
+   "description": "e.g. \"Waterfront Villa\". Groups room types sharing a villa/site on the booking engine."
+  },
+  {
+   "description": "URL slug for this site when several villas share one property (e.g. waterfront-villa). Guests open /stay/your-site-slug.",
+   "fieldname": "location_slug",
+   "fieldtype": "Data",
+   "label": "Site Slug"
+  },
+  {
+   "fieldname": "location_address",
+   "fieldtype": "Small Text",
+   "label": "Location Address"
+  },
+  {
+   "fieldname": "column_break_loc",
+   "fieldtype": "Column Break",
+   "label": "Column Break Loc"
+  },
+  {
+   "fieldname": "google_maps_url",
+   "fieldtype": "Data",
+   "label": "Google Maps Link"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude",
+   "precision": "6"
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude",
+   "precision": "6"
+  },
+  {
+   "fieldname": "sb_pricing",
+   "fieldtype": "Section Break",
+   "label": "Occupancy-based Pricing"
+  },
+  {
+   "description": "Nightly rate including base_occupancy adults",
+   "fieldname": "base_price",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Base Price",
+   "reqd": 1
+  },
+  {
+   "default": "2",
+   "description": "Adults included in base price",
+   "fieldname": "base_occupancy",
+   "fieldtype": "Int",
+   "label": "Base Occupancy"
+  },
+  {
+   "depends_on": "eval:doc.room_category !== 'Villa'",
+   "description": "Blank = use base price",
+   "fieldname": "single_occupancy_price",
+   "fieldtype": "Currency",
+   "label": "Single Occupancy Price"
+  },
+  {
+   "fieldname": "column_break_p",
+   "fieldtype": "Column Break",
+   "label": "Column Break P"
+  },
+  {
+   "description": "Per night, per adult beyond base occupancy",
+   "fieldname": "extra_adult_price",
+   "fieldtype": "Currency",
+   "label": "Extra Adult Price"
+  },
+  {
+   "fieldname": "extra_bed_price",
+   "fieldtype": "Currency",
+   "label": "Extra Bed Price"
+  },
+  {
+   "default": "0",
+   "fieldname": "max_extra_beds",
+   "fieldtype": "Int",
+   "label": "Max Extra Beds"
+  },
+  {
+   "fieldname": "sb_children",
+   "fieldtype": "Section Break",
+   "label": "Children Policy"
+  },
+  {
+   "default": "5",
+   "description": "Children at/under this age stay free",
+   "fieldname": "free_child_age",
+   "fieldtype": "Int",
+   "label": "Free Child Age"
+  },
+  {
+   "default": "11",
+   "description": "Children above this age are charged as adults",
+   "fieldname": "child_age_limit",
+   "fieldtype": "Int",
+   "label": "Child Age Limit"
+  },
+  {
+   "fieldname": "column_break_ch",
+   "fieldtype": "Column Break",
+   "label": "Column Break Ch"
+  },
+  {
+   "description": "Per night, per child between free age and age limit",
+   "fieldname": "child_price",
+   "fieldtype": "Currency",
+   "label": "Child Price"
+  },
+  {
+   "fieldname": "tax_percent",
+   "fieldtype": "Percent",
+   "label": "Tax %",
+   "description": "Leave blank to use your country's standard rate (India: GST slabs by tariff)"
+  },
+  {
+   "fieldname": "sb_capacity",
+   "fieldtype": "Section Break",
+   "label": "Capacity & Attributes"
+  },
+  {
+   "default": "2",
+   "fieldname": "adults_capacity",
+   "fieldtype": "Int",
+   "label": "Adults Capacity"
+  },
+  {
+   "default": "1",
+   "fieldname": "children_capacity",
+   "fieldtype": "Int",
+   "label": "Children Capacity"
+  },
+  {
+   "fieldname": "max_total_occupants",
+   "fieldtype": "Int",
+   "label": "Max Total Occupants"
+  },
+  {
+   "depends_on": "eval:doc.room_category !== 'Villa'",
+   "fieldname": "bed_type",
+   "fieldtype": "Select",
+   "label": "Bed Type",
+   "options": "\nKing\nQueen\nTwin\nDouble\nSingle"
+  },
+  {
+   "fieldname": "column_break_at",
+   "fieldtype": "Column Break",
+   "label": "Column Break At"
+  },
+  {
+   "depends_on": "eval:doc.room_category !== 'Villa'",
+   "fieldname": "room_view",
+   "fieldtype": "Data",
+   "label": "View"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.room_category !== 'Villa'",
+   "fieldname": "smoking_allowed",
+   "fieldtype": "Check",
+   "label": "Smoking Allowed"
+  },
+  {
+   "fieldname": "air_conditioning",
+   "fieldtype": "Select",
+   "label": "Air Conditioning",
+   "options": "\nAC\nNon AC",
+   "default": "Non AC",
+   "depends_on": "eval:doc.room_category !== 'Villa'"
+  },
+  {
+   "fieldname": "bathroom",
+   "fieldtype": "Select",
+   "label": "Bathroom Type",
+   "options": "\nAttached\nCommon",
+   "default": "Attached",
+   "depends_on": "eval:doc.room_category !== 'Villa'"
+  },
+  {
+   "fieldname": "kitchen",
+   "fieldtype": "Check",
+   "label": "Kitchen Access",
+   "default": "0",
+   "depends_on": "eval:doc.room_category !== 'Villa'"
+  },
+  {
+   "description": "Comma-separated, e.g. WiFi, AC, TV",
+   "fieldname": "amenities",
+   "fieldtype": "Small Text",
+   "label": "Amenities"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Image"
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "fieldname": "sb_media",
+   "fieldtype": "Section Break",
+   "label": "Showcase Media"
+  },
+  {
+   "fieldname": "media",
+   "fieldtype": "Table",
+   "label": "Media Gallery",
+   "options": "Room Type Media"
+  },
+  {
+   "fieldname": "overbooking_pct",
+   "fieldtype": "Percent",
+   "label": "Overbooking Allowance %",
+   "description": "Overrides the property-wide allowance when set."
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-04 19:26:35.766617",
+ "modified_by": "Administrator",
+ "module": "Kamra",
+ "name": "Room Type",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Hotel Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Front Desk"
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Revenue Manager",
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Housekeeping"
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Kamra Agent"
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "room_type_name",
+ "track_changes": 1
+}

@@ -1,0 +1,122 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-14 16:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "property",
+  "room_type",
+  "column_break_a",
+  "occupancy_from",
+  "premium_pct",
+  "min_rate",
+  "disabled"
+ ],
+ "fields": [
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Property",
+   "reqd": 1
+  },
+  {
+   "fieldname": "room_type",
+   "fieldtype": "Link",
+   "label": "Room Type",
+   "options": "Room Type",
+   "description": "Blank = applies to every room type."
+  },
+  {
+   "fieldname": "column_break_a",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "occupancy_from",
+   "fieldtype": "Percent",
+   "label": "When Occupancy ≥ %",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "premium_pct",
+   "fieldtype": "Percent",
+   "label": "Premium %",
+   "in_list_view": 1,
+   "description": "Added on top of the season-adjusted rate."
+  },
+  {
+   "fieldname": "min_rate",
+   "fieldtype": "Currency",
+   "label": "Hurdle (Min Sell Rate)",
+   "in_list_view": 1,
+   "description": "Quotes and manual rates below this are raised/blocked while the tier is active."
+  },
+  {
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  }
+ ],
+ "links": [],
+ "modified": "2026-07-14 16:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Kamra",
+ "name": "Hurdle Rate",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Hotel Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Front Desk",
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance"
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Kamra Agent",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

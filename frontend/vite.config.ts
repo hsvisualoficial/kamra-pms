@@ -10,7 +10,7 @@ export default defineConfig(({ command }) => ({
   base: "./",
   plugins: [react(), tailwindcss()],
   build: {
-    outDir: "../kamra/public/frontend",
+    outDir: "dist",
     emptyOutDir: true,
     sourcemap: false,
   },

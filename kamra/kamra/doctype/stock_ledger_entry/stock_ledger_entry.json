@@ -1,0 +1,195 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:SLE-{YYYY}-{#####}",
+ "creation": "2026-07-16 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "property",
+  "outlet",
+  "ingredient",
+  "column_break_a",
+  "qty_change",
+  "balance_after",
+  "reason",
+  "section_ref",
+  "reference_doctype",
+  "reference_name",
+  "note",
+  "column_break_b",
+  "supplier",
+  "invoice_no",
+  "batch_id",
+  "cost_per_unit"
+ ],
+ "fields": [
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Property",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "outlet",
+   "fieldtype": "Link",
+   "label": "Outlet",
+   "options": "POS Outlet",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "ingredient",
+   "fieldtype": "Link",
+   "label": "Ingredient",
+   "options": "Ingredient",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_a",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "qty_change",
+   "fieldtype": "Float",
+   "label": "Qty Change",
+   "read_only": 1,
+   "in_list_view": 1,
+   "description": "Signed. Negative leaves the shelf."
+  },
+  {
+   "fieldname": "balance_after",
+   "fieldtype": "Float",
+   "label": "Balance After",
+   "read_only": 1,
+   "in_list_view": 1,
+   "description": "The balance this move produced, so the ledger audits itself without re-summing history."
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Select",
+   "label": "Reason",
+   "options": "Opening\nReceived\nConsumed\nWastage\nCount",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Wastage means destroyed outside a sale (spoiled, broken). Food cooked then voided is already a Consumed row - see wastage_report."
+  },
+  {
+   "fieldname": "section_ref",
+   "fieldtype": "Section Break",
+   "label": "Reference"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference Type",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Data",
+   "label": "Reference",
+   "read_only": 1,
+   "description": "Data, not a Dynamic Link: this often points at a child row (POS Order Item), which Dynamic Link validation cannot resolve."
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Small Text",
+   "label": "Note",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_b",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Data",
+   "label": "Supplier",
+   "read_only": 1
+  },
+  {
+   "fieldname": "invoice_no",
+   "fieldtype": "Data",
+   "label": "Invoice No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "batch_id",
+   "fieldtype": "Data",
+   "label": "Batch",
+   "read_only": 1,
+   "search_index": 1,
+   "description": "Groups the rows written by one receipt or one stock take."
+  },
+  {
+   "fieldname": "cost_per_unit",
+   "fieldtype": "Currency",
+   "label": "Cost / Unit",
+   "read_only": 1,
+   "description": "Snapshot at the moment of the move, so later price changes never rewrite history."
+  }
+ ],
+ "in_create": 1,
+ "links": [],
+ "modified": "2026-07-16 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Kamra",
+ "name": "Stock Ledger Entry",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Hotel Admin"
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance"
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Front Desk"
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Kamra Agent"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

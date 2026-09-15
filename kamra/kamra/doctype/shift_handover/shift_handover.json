@@ -1,0 +1,177 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "format:SHIFT-{shift_date}-{shift}",
+ "creation": "2026-07-04 20:27:10.956788",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "property",
+  "shift",
+  "shift_date",
+  "column_break_a",
+  "status",
+  "handed_over_to",
+  "sb_cash",
+  "opening_cash",
+  "cash_collected",
+  "column_break_b",
+  "payouts",
+  "closing_cash",
+  "sb_notes",
+  "handover_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Property",
+   "reqd": 1
+  },
+  {
+   "fieldname": "shift",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Shift",
+   "options": "Morning\nEvening\nNight",
+   "reqd": 1
+  },
+  {
+   "fieldname": "shift_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Shift Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_a",
+   "fieldtype": "Column Break",
+   "label": "Column Break A"
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Open\nClosed"
+  },
+  {
+   "fieldname": "handed_over_to",
+   "fieldtype": "Link",
+   "label": "Handed Over To",
+   "options": "User"
+  },
+  {
+   "fieldname": "sb_cash",
+   "fieldtype": "Section Break",
+   "label": "Cash Count"
+  },
+  {
+   "fieldname": "opening_cash",
+   "fieldtype": "Currency",
+   "label": "Opening Cash"
+  },
+  {
+   "description": "Cash payments taken this shift (see folio payments)",
+   "fieldname": "cash_collected",
+   "fieldtype": "Currency",
+   "label": "Cash Collected"
+  },
+  {
+   "fieldname": "column_break_b",
+   "fieldtype": "Column Break",
+   "label": "Column Break B"
+  },
+  {
+   "description": "Cash paid out (vendors, refunds)",
+   "fieldname": "payouts",
+   "fieldtype": "Currency",
+   "label": "Payouts"
+  },
+  {
+   "fieldname": "closing_cash",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Closing Cash"
+  },
+  {
+   "fieldname": "sb_notes",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "description": "Pending follow-ups for the next shift",
+   "fieldname": "handover_notes",
+   "fieldtype": "Small Text",
+   "label": "Handover Notes"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-04 20:27:10.956788",
+ "modified_by": "Administrator",
+ "module": "Kamra",
+ "name": "Shift Handover",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Hotel Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Front Desk",
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Finance"
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Kamra Agent"
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "shift",
+ "track_changes": 1
+}

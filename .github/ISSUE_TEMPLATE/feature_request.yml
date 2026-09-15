@@ -1,0 +1,23 @@
+name: Feature request
+description: Propose a capability Kamra should have
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The hotel-operations problem
+      description: Describe the real front-desk / revenue / housekeeping situation, not the solution. Who hits this, how often?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behaviour
+      description: What should Kamra do? If you've seen another PMS handle it well, describe the capability (please don't ask us to clone a competitor's screen).
+    validations:
+      required: true
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround
+      description: How do you cope today?

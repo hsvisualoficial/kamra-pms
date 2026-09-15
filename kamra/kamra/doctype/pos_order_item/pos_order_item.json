@@ -1,0 +1,126 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "creation": "2026-07-04 21:48:59.793969",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "menu_item",
+  "item_name",
+  "qty",
+  "rate",
+  "amount",
+  "instructions",
+  "kot_status",
+  "fired_at",
+  "prepared_at",
+  "stock_posted",
+  "voided",
+  "void_reason",
+  "void_seen"
+ ],
+ "fields": [
+  {
+   "fieldname": "menu_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Menu Item",
+   "options": "Menu Item",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "menu_item.item_name",
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Item Name"
+  },
+  {
+   "default": "1",
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Qty"
+  },
+  {
+   "fetch_from": "menu_item.price",
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Rate"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "instructions",
+   "fieldtype": "Data",
+   "label": "Instructions",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "kot_status",
+   "fieldtype": "Select",
+   "label": "KOT",
+   "options": "New\nFired\nPrepared",
+   "default": "New"
+  },
+  {
+   "fieldname": "fired_at",
+   "fieldtype": "Datetime",
+   "label": "Fired At",
+   "read_only": 1,
+   "description": "When this line was sent to the kitchen. The cook's clock starts here - not when the captain opened the tab."
+  },
+  {
+   "fieldname": "prepared_at",
+   "fieldtype": "Datetime",
+   "label": "Prepared At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stock_posted",
+   "fieldtype": "Check",
+   "label": "Stock Posted",
+   "read_only": 1,
+   "description": "This line's recipe has come off the outlet's stock. Set when the line is fired and never cleared - cooked food cannot be un-cooked, so no void, cancel or recall puts it back."
+  },
+  {
+   "fieldname": "voided",
+   "fieldtype": "Check",
+   "label": "Voided"
+  },
+  {
+   "fieldname": "void_reason",
+   "fieldtype": "Data",
+   "label": "Void Reason"
+  },
+  {
+   "fieldname": "void_seen",
+   "fieldtype": "Check",
+   "label": "Void Seen",
+   "description": "The kitchen has acknowledged a line voided after the KOT fired."
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-04 21:48:59.793969",
+ "modified_by": "Administrator",
+ "module": "Kamra",
+ "name": "POS Order Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

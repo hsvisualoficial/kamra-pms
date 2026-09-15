@@ -1,0 +1,33 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-07-06 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": ["title", "property", "messages"],
+ "fields": [
+  {"fieldname": "title", "fieldtype": "Data", "label": "Title", "in_list_view": 1},
+  {"fieldname": "property", "fieldtype": "Link", "label": "Property", "options": "Property"},
+  {"fieldname": "messages", "fieldtype": "Long Text", "label": "Messages"}
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-06 00:00:00",
+ "modified_by": "Administrator",
+ "module": "Kamra",
+ "name": "Copilot Conversation",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "Hotel Admin", "read": 1, "write": 1, "create": 1, "delete": 1, "if_owner": 1},
+  {"role": "Front Desk", "read": 1, "write": 1, "create": 1, "delete": 1, "if_owner": 1},
+  {"role": "Finance", "read": 1, "write": 1, "create": 1, "delete": 1, "if_owner": 1},
+  {"role": "Revenue Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "if_owner": 1},
+  {"role": "Kamra Agent", "read": 1, "write": 1, "create": 1, "delete": 1, "if_owner": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 0
+}
