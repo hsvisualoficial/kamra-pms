@@ -15,6 +15,7 @@ COPY . .
 
 WORKDIR /app/frontend
 ENV VITE_BASE_PATH="/"
+ENV VITE_ROUTER_BASENAME="/"
 RUN npm run build
 
 # Stage 2: Runner with Nginx
