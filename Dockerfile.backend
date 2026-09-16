@@ -1,0 +1,29 @@
+# Dockerfile.backend — Kamra PMS Backend Service
+FROM python:3.11-slim
+
+# Install system build dependencies and MariaDB client libraries
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    gcc \
+    build-essential \
+    libmariadb-dev \
+    libmariadb-dev-compat \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+# Copy python package manifests and application source
+COPY pyproject.toml README.md ./
+COPY kamra/ ./kamra/
+
+# Install frappe framework and gunicorn WSGI server
+RUN pip install --no-cache-dir frappe gunicorn werkzeug
+
+ENV PYTHONUNBUFFERED=1
+ENV PORT=3000
+
+EXPOSE 3000
+
+CMD ["gunicorn", "-b", "0.0.0.0:3000", "--workers", "2", "--timeout", "120", "frappe.app:application"]
