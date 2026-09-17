@@ -184,6 +184,67 @@ class KamraAPIHandler(BaseHTTPRequestHandler):
                 },
                 "properties": []
             }})
+        if path.endswith("/kamra.reports.budget_vs_actual"):
+            return self._send_json({"message": {
+                "period": "2026-09",
+                "days_elapsed": 1,
+                "total_days": 30,
+                "rows": [],
+                "has_budget": False
+            }})
+
+        if path.endswith("/kamra.reports.contribution"):
+            return self._send_json({"message": {
+                "by": "",
+                "total": 0,
+                "rows": []
+            }})
+
+        if path.endswith("/kamra.cashier.list_sessions"):
+            return self._send_json({"message": {
+                "sessions": [],
+                "business_date": "2026-09-17"
+            }})
+
+        if path.endswith("/kamra.reports.sla_report"):
+            return self._send_json({"message": {
+                "from": "",
+                "to": "",
+                "total": 0,
+                "resolved": 0,
+                "open": 0,
+                "breached": 0,
+                "breach_pct": 0,
+                "avg_resolve_mins": 0,
+                "by_category": [],
+                "by_priority": [],
+                "overdue": []
+            }})
+
+        if path.endswith("/kamra.banquet.banquet_pipeline"):
+            return self._send_json({"message": {
+                "from": "",
+                "to": "",
+                "months": [],
+                "by_status": [],
+                "by_event_type": [],
+                "by_venue": [],
+                "by_source": [],
+                "totals": {
+                    "functions": 0,
+                    "confirmed_value": 0,
+                    "pipeline_value": 0,
+                    "outstanding": 0,
+                    "conversion_rate": 0
+                },
+                "lost_reasons": []
+            }})
+
+        if path.endswith("/kamra.banquet.banquet_reminders"):
+            return self._send_json({"message": {
+                "count": 0,
+                "functions": []
+            }})
 
         return None
 
