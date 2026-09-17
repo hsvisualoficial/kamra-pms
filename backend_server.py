@@ -246,6 +246,26 @@ class KamraAPIHandler(BaseHTTPRequestHandler):
                 "functions": []
             }})
 
+        if path.endswith("/kamra.ledger.ledger_balances"):
+            return self._send_json({"message": {
+                "business_date": "2026-09-17", "ledgers": [], "total_debit": 0, "total_credit": 0, "in_balance": True
+            }})
+
+        if path.endswith("/kamra.ledger.journal_by_transaction_code"):
+            return self._send_json({"message": {
+                "rows": []
+            }})
+
+        if path.endswith("/kamra.ledger.city_ledger_aging"):
+            return self._send_json({"message": {
+                "accounts": []
+            }})
+
+        if path.endswith("/kamra.banquet.banquet_calendar"):
+            return self._send_json({"message": {
+                "start": "2026-09-17", "days": 1, "dates": [], "venues": []
+            }})
+
         if path.endswith("/kamra.banquet.banquet_catalogue"):
             return self._send_json({"message": {
                 "menus": [], "services": [], "venues": []
