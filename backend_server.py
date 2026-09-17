@@ -99,6 +99,25 @@ class KamraAPIHandler(BaseHTTPRequestHandler):
         if path.endswith("/kamra.api.cashier_pin_status"):
             return self._send_json({"message": {"has_pin": False}})
 
+        if path.endswith("/kamra.api.my_properties"):
+            return self._send_json({"message": [
+                {"name": "mock-property-1", "property_name": "Mock Property", "city": "Mock City"}
+            ]})
+            
+        if path.endswith("/kamra.api.enabled_modules"):
+            return self._send_json({"message": []})
+
+        if path.endswith("/kamra.api.front_desk_snapshot"):
+            return self._send_json({"message": {
+                "arrivals": 0,
+                "departures": 0,
+                "in_house": 0,
+                "available": 0,
+                "occupancy": 0,
+                "revpar": 0,
+                "adr": 0
+            }})
+
         # Default fallback for unknown GET APIs
         return self._send_json({"message": {}}, status=200)
 
