@@ -246,6 +246,54 @@ class KamraAPIHandler(BaseHTTPRequestHandler):
                 "functions": []
             }})
 
+        if path.endswith("/kamra.banquet.banquet_catalogue"):
+            return self._send_json({"message": {
+                "menus": [], "services": [], "venues": []
+            }})
+
+        if path.endswith("/kamra.banquet.banquet_register"):
+            return self._send_json({"message": {
+                "register": "", "title": "", "from": "", "to": "", "rows": [], "totals": { "count": 0, "value": 0 }
+            }})
+
+        if path.endswith("/kamra.banquet.month_availability"):
+            return self._send_json({"message": {
+                "month": "", "start": "", "end": "", "dates": [], "utilisation": 0, "venues": [], "rows": []
+            }})
+
+        if path.endswith("/kamra.api.fx_rates"):
+            return self._send_json({"message": {
+                "rates": {}
+            }})
+
+        if path.endswith("/kamra.api.fx_transactions"):
+            return self._send_json({"message": {
+                "transactions": []
+            }})
+
+        if path.endswith("/kamra.folio.history"):
+            return self._send_json({"message": {
+                "folios": []
+            }})
+
+        if path.endswith("/kamra.accounting.export_invoices"):
+            return self._send_json({"message": {
+                "rows": [], "components": [], "tax_label": "", "tax_id_label": "", "currency": "", "totals": { "invoices": 0, "taxable": 0, "total_tax": 0, "grand_total": 0 }
+            }})
+
+        if path.endswith("/kamra.health.system_health"):
+            return self._send_json({"message": {
+                "overall": "ok",
+                "summary": { "ok": 1, "warn": 0, "fail": 0 },
+                "installed": { "kamra": "mock", "frappe": "mock", "site": "mock" },
+                "latest": { "ok": True, "tag": "", "name": "", "url": "", "published_at": "" }
+            }})
+
+        if path.endswith("/kamra.reports.manager_flash"):
+            return self._send_json({"message": {
+                "date": "", "total_rooms": 0, "today": None, "mtd": { "occupancy_pct": 0, "date": "", "rooms_sold": 0, "pax": 0, "room_revenue": 0, "fnb_revenue": 0, "other_revenue": 0, "total_revenue": 0 }, "movement": { "arrivals": 0, "departures": 0, "in_house": 0, "no_shows": 0 }, "collections": { "modes": [], "grand_total": 0 }, "trend": [], "outlook": []
+            }})
+
         return None
 
     def do_GET(self):
