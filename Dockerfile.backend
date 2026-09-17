@@ -23,6 +23,7 @@ RUN pip install --no-cache-dir frappe gunicorn werkzeug
 
 ENV PYTHONUNBUFFERED=1
 ENV PORT=3000
+ENV FRAPPE_SITE="kamra.localhost"
 
 EXPOSE 3000
 
