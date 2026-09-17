@@ -14,8 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /workspace
 
-# Copy python package manifests and application source
-COPY pyproject.toml README.md ./
+# Copy python package manifests, entrypoint script and application source
+COPY pyproject.toml README.md backend_entrypoint.py ./
 COPY kamra/ ./kamra/
 
 # Install frappe framework and gunicorn WSGI server
@@ -27,4 +27,4 @@ ENV FRAPPE_SITE="kamra.localhost"
 
 EXPOSE 3000
 
-CMD ["gunicorn", "-b", "0.0.0.0:3000", "--workers", "2", "--timeout", "120", "frappe.app:application"]
+CMD ["sh", "-c", "python backend_entrypoint.py && gunicorn -b 0.0.0.0:3000 --workers 2 --timeout 120 frappe.app:application"]
