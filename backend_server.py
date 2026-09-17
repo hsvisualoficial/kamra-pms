@@ -61,6 +61,7 @@ class KamraAPIHandler(BaseHTTPRequestHandler):
                 self.send_header(k, v)
         self.end_headers()
         self.wfile.write(body)
+        return True
 
     def _get_session_user(self):
         cookie_header = self.headers.get("Cookie", "")
