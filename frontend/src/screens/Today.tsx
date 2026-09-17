@@ -335,16 +335,16 @@ export default function Today() {
     }
   }
 
-  const occupied = snap?.rooms.filter(
+  const occupied = snap?.rooms?.filter(
     (r) => r.occupancy_status === "Occupied",
   ).length
-  const occupancyPct = snap?.rooms.length
+  const occupancyPct = snap?.rooms?.length
     ? Math.round(((occupied ?? 0) / snap.rooms.length) * 100)
     : 0
-  const arrivalsN = snap?.arrivals.length ?? 0
-  const departuresN = snap?.departures.length ?? 0
-  const inhouseN = snap?.in_house.length ?? 0
-  const roomsN = snap?.rooms.length ?? 0
+  const arrivalsN = snap?.arrivals?.length ?? 0
+  const departuresN = snap?.departures?.length ?? 0
+  const inhouseN = snap?.in_house?.length ?? 0
+  const roomsN = snap?.rooms?.length ?? 0
   const revenue = Number(kpi?.revenue_today ?? 0)
   const revpar = Number(kpi?.statistics?.revpar ?? 0)
   const tasksN = Number(kpi?.housekeeping?.open_tasks ?? 0)

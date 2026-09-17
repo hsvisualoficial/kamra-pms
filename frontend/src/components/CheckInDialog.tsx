@@ -107,7 +107,7 @@ export default function CheckInDialog(props: {
   const r = ctx?.reservation
   const chosen =
     ctx?.room_assigned ??
-    ctx?.rooms.find((x) => x.name === room) ??
+    ctx?.rooms?.find((x) => x.name === room) ??
     null
   const chosenDirty = chosen?.housekeeping_status === "Dirty"
 

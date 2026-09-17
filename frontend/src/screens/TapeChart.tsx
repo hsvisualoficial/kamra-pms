@@ -394,7 +394,7 @@ export default function TapeChart() {
           {/* header row */}
           <div className="flex border-b border-zinc-200 bg-zinc-50 text-xs font-medium text-zinc-500">
             <div className="w-[130px] shrink-0 px-3 py-2">{t("Room")}</div>
-            {data?.dates.map((d) => {
+            {data?.dates?.map((d) => {
               const day = new Date(d)
               const weekend = day.getDay() === 0 || day.getDay() === 6
               return (

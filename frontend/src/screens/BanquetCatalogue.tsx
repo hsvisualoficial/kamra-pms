@@ -182,8 +182,8 @@ export default function BanquetCatalogue() {
         <div className="mb-4 flex gap-1 border-b border-zinc-200">
           {(
             [
-              ["menus", `Menus (${cat?.menus.length ?? 0})`, UtensilsCrossed],
-              ["services", `Services (${cat?.services.length ?? 0})`, Wrench],
+              ["menus", `Menus (${cat?.menus?.length ?? 0})`, UtensilsCrossed],
+              ["services", `Services (${cat?.services?.length ?? 0})`, Wrench],
               ["dishes", `Dishes (${dishes?.length ?? 0})`, ChefHat],
             ] as [Tab, string, typeof Wrench][]
           ).map(([id, label, Icon]) => (

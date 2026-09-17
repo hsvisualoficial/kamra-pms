@@ -85,7 +85,7 @@ export default function BanquetRegisters() {
   /** A register is a table of numbers; people paste them into spreadsheets.
    *  Giving them a real CSV beats them retyping it. */
   function exportCsv() {
-    if (!data?.rows.length) return
+    if (!data?.rows?.length) return
     const cols = Object.keys(data.rows[0] as unknown as object).filter(
       (k) => !["lost_reason"].includes(k),
     )
@@ -136,7 +136,7 @@ export default function BanquetRegisters() {
               onChange={(e) => setTo(e.target.value)}
             />
           </Field>
-          <Button variant="outline" onClick={exportCsv} disabled={!data?.rows.length}>
+          <Button variant="outline" onClick={exportCsv} disabled={!data?.rows?.length}>
             <Download className="size-4" />
             CSV
           </Button>

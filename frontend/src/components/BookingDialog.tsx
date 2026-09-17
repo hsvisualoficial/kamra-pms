@@ -438,7 +438,7 @@ export function BookingDialog(props: {
   const set = (k: string, v: string | number) =>
     setForm((f) => ({ ...f, [k]: v }))
 
-  const selectedRt = options?.room_types.find(
+  const selectedRt = options?.room_types?.find(
     (rt) => rt.name === form.room_type,
   )
   const roomTypeName = selectedRt?.room_type_name ?? ""
@@ -492,7 +492,7 @@ export function BookingDialog(props: {
   const grandTotal = (() => {
     if (!quote) return 0
     const addonsGross = Object.entries(addonQty).reduce((s, [n, q]) => {
-      const x = options?.experiences.find((e) => e.name === n)
+      const x = options?.experiences?.find((e) => e.name === n)
       return x && q > 0 ? s + q * x.price * (1 + x.gst_rate / 100) : s
     }, 0)
     return (
@@ -511,7 +511,7 @@ export function BookingDialog(props: {
   })()
 
   const addonsGross = Object.entries(addonQty).reduce((s, [n, q]) => {
-    const x = options?.experiences.find((e) => e.name === n)
+    const x = options?.experiences?.find((e) => e.name === n)
     return x && q > 0 ? s + q * x.price * (1 + x.gst_rate / 100) : s
   }, 0)
 
@@ -665,7 +665,7 @@ export function BookingDialog(props: {
                     value={form.room_type}
                     onChange={(e) => set("room_type", e.target.value)}
                   >
-                    {options?.room_types.map((rt) => (
+                    {options?.room_types?.map((rt) => (
                       <option key={rt.name} value={rt.name}>
                         {rt.room_type_name} · {cur()}
                         {inr(rt.base_price)}/night
@@ -762,7 +762,7 @@ export function BookingDialog(props: {
                       onChange={(e) => set("meal_plan", e.target.value)}
                     >
                       <option value="">{t("Room only")}</option>
-                      {options?.meal_plans.map((mp) => (
+                      {options?.meal_plans?.map((mp) => (
                         <option key={mp.name} value={mp.name}>
                           {mp.label} (+{cur()}
                           {inr(mp.price_per_adult)}/adult)
@@ -802,7 +802,7 @@ export function BookingDialog(props: {
                         )
                       }
                     >
-                      {options?.room_types.map((rt) => (
+                      {options?.room_types?.map((rt) => (
                         <option key={rt.name} value={rt.name}>
                           {rt.room_type_name}
                         </option>
@@ -840,7 +840,7 @@ export function BookingDialog(props: {
                       }
                     >
                       <option value="">Room only</option>
-                      {options?.meal_plans.map((mp) => (
+                      {options?.meal_plans?.map((mp) => (
                         <option key={mp.name} value={mp.name}>
                           {mp.label}
                         </option>
@@ -904,7 +904,7 @@ export function BookingDialog(props: {
                             onChange={(e) => set("company", e.target.value)}
                           >
                             <option value="">-</option>
-                            {options?.companies.map((c) => (
+                            {options?.companies?.map((c) => (
                               <option key={c.name} value={c.name}>
                                 {c.company_name}
                               </option>
@@ -920,7 +920,7 @@ export function BookingDialog(props: {
                             }
                           >
                             <option value="">-</option>
-                            {options?.travel_agents.map((t) => (
+                            {options?.travel_agents?.map((t) => (
                               <option key={t.name} value={t.name}>
                                 {t.agent_name} ({t.commission_pct}%)
                               </option>
@@ -930,13 +930,13 @@ export function BookingDialog(props: {
                       </div>
 
                       {moreRooms.length === 0 &&
-                        (options?.experiences.length ?? 0) > 0 && (
+                        (options?.experiences?.length ?? 0) > 0 && (
                           <div>
                             <span className="mb-1.5 block text-sm font-medium text-zinc-600">
                               Add-ons
                             </span>
                             <div className="flex flex-wrap gap-1.5">
-                              {options?.experiences.map((x) => {
+                              {options?.experiences?.map((x) => {
                                 const on = (addonQty[x.name] ?? 0) > 0
                                 return (
                                   <button
@@ -1229,7 +1229,7 @@ export function BookingDialog(props: {
                         >
                           <span className="min-w-0 truncate">
                             Room {i + 2} ·{" "}
-                            {options?.room_types.find(
+                            {options?.room_types?.find(
                               (rt) => rt.name === moreRooms[i]?.room_type,
                             )?.room_type_name ?? ""}
                           </span>

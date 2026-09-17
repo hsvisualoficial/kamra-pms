@@ -359,7 +359,7 @@ export default function VenueCalendar() {
             <Field label="Venue">
               <select className={inputCls} value={draft.venue}
                 onChange={(e) => setField("venue", e.target.value)}>
-                {data?.venues.map((v) => (
+                {data?.venues?.map((v) => (
                   <option key={v.name} value={v.name}>{v.venue_name}</option>
                 ))}
               </select>
