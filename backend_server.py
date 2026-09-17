@@ -133,6 +133,58 @@ class KamraAPIHandler(BaseHTTPRequestHandler):
                 "unassigned": []
             }})
 
+        if path.endswith("/kamra.dashboards.property_dashboard"):
+            import datetime
+            return self._send_json({"message": {
+                "property_name": "Mock Property",
+                "date": datetime.date.today().isoformat(),
+                "total_rooms": 0,
+                "occupancy_pct": 0,
+                "arrivals": 0,
+                "departures": 0,
+                "in_house": 0,
+                "no_shows": 0,
+                "revenue_today": 0,
+                "collections_today": 0,
+                "statistics": {
+                    "mtd_occupancy_pct": 0,
+                    "mtd_revenue": 0,
+                    "adr": 0,
+                    "revpar": 0,
+                    "rooms_sold_mtd": 0
+                },
+                "housekeeping": {
+                    "room_status": {},
+                    "occupied": 0,
+                    "vacant": 0,
+                    "open_tasks": 0,
+                    "overdue_tasks": 0
+                },
+                "finance": {
+                    "collections_today": 0,
+                    "outstanding": 0,
+                    "open_folios": 0
+                }
+            }})
+
+        if path.endswith("/kamra.dashboards.portfolio_dashboard"):
+            import datetime
+            return self._send_json({"message": {
+                "date": datetime.date.today().isoformat(),
+                "totals": {
+                    "properties": 1,
+                    "total_rooms": 0,
+                    "occupancy_pct": 0,
+                    "arrivals": 0,
+                    "departures": 0,
+                    "in_house": 0,
+                    "revenue_today": 0,
+                    "collections_today": 0,
+                    "outstanding": 0
+                },
+                "properties": []
+            }})
+
         return None
 
     def do_GET(self):
