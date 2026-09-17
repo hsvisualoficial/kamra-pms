@@ -13,8 +13,9 @@ export default function AppLauncher() {
   const { roles } = useAuth()
   const navigate = useNavigate()
   const apps = visibleApps(roles)
+  const safeRoles = Array.isArray(roles) ? roles : []
   const canMarket = ["Hotel Admin", "System Manager", "Administrator"].some(
-    (r) => roles.includes(r),
+    (r) => safeRoles.includes(r),
   )
 
   const open = (app: AppDef) => {

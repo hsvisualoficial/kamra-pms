@@ -62,7 +62,8 @@ function navItemsForRoles(roles: string[]): {
   const seen = new Set<string>()
   for (const app of visibleApps(roles)) {
     for (const item of app.items) {
-      if (item.roles && !item.roles.some((r) => roles.includes(r))) continue
+      const safeRoles = Array.isArray(roles) ? roles : []
+      if (item.roles && !item.roles.some((r) => safeRoles.includes(r))) continue
       const key = item.to ?? item.href ?? item.label
       if (seen.has(key)) continue
       seen.add(key)

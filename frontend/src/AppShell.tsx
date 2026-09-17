@@ -235,8 +235,9 @@ export default function AppShell() {
   const floor = location.pathname === "/pos" || location.pathname === "/kitchen"
   const { on: kiosk } = useKiosk()
 
+  const safeRoles = Array.isArray(roles) ? roles : []
   const items = (currentApp?.items ?? []).filter(
-    (item) => !item.roles || item.roles.some((r) => roles.includes(r)),
+    (item) => !item.roles || item.roles.some((r) => safeRoles.includes(r)),
   )
 
   const renderItem = (item: AppNavItem) =>
