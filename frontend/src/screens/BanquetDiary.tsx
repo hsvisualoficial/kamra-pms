@@ -48,7 +48,9 @@ export default function BanquetDiary() {
   const load = useCallback(() => {
     banquet
       .calendar(start, SPAN)
-      .then(setData)
+      .then((res) =>
+        setData(Array.isArray(res) ? { start: "", days: 0, dates: [], venues: [] } : res),
+      )
       .catch((e) => setError(serverError(e)))
   }, [start])
   useEffect(load, [load])

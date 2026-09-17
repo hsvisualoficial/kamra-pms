@@ -62,7 +62,21 @@ export default function BanquetMonth() {
     setData(null)
     banquet
       .monthAvailability(month)
-      .then(setData)
+      .then((res) =>
+        setData(
+          Array.isArray(res)
+            ? {
+                month: "",
+                start: "",
+                end: "",
+                dates: [],
+                utilisation: 0,
+                venues: [],
+                rows: [],
+              }
+            : res,
+        ),
+      )
       .catch((e) => setError(serverError(e)))
   }, [month])
   useEffect(load, [load])

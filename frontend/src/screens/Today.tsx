@@ -91,12 +91,12 @@ const mkTrend = (n: number, up = true) =>
   })
 
 function ReservationList(props: {
-  rows: ReservationRow[]
+  rows?: ReservationRow[]
   empty: string
   action: (row: ReservationRow) => React.ReactNode
 }) {
   const { t } = useT()
-  if (props.rows.length === 0) {
+  if (!props.rows?.length) {
     return <p className="px-1 py-3 text-sm text-zinc-400">{props.empty}</p>
   }
   return (
@@ -209,12 +209,12 @@ function InHouseTable({
   rows,
   today,
 }: {
-  rows: ReservationRow[]
+  rows?: ReservationRow[]
   today?: string
 }) {
   const { t } = useT()
   const navigate = useNavigate()
-  if (!rows.length) {
+  if (!rows?.length) {
     return (
       <p className="px-1 py-3 text-sm text-zinc-400">
         {t("Nobody is checked in right now.")}
@@ -307,10 +307,10 @@ export default function Today() {
         getSnapshot(),
         call("kamra.dashboards.property_dashboard", {
           property: getCurrentProperty(),
-        }).catch(() => null),
+        }).catch(() => ({})),
       ])
       setSnap(s)
-      setKpi(k)
+      setKpi(k || {})
       setError(null)
     } catch (e) {
       setError(serverError(e))

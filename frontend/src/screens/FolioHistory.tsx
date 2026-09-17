@@ -39,7 +39,7 @@ export default function FolioHistory() {
           status: status || undefined,
         },
       )
-      setRows(out.folios)
+      setRows(out?.folios ?? [])
     } catch (e) {
       setErr(serverError(e))
     }

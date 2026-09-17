@@ -41,12 +41,12 @@ export default function CurrencyDesk() {
         "kamra.ledger.list_exchange_rates",
         { property: getCurrentProperty() },
       )
-      setRates(r.rates)
+      setRates(r?.rates ?? [])
       const h = await call<{ transactions: Record<string, unknown>[] }>(
         "kamra.ledger.exchange_history",
         { property: getCurrentProperty() },
       )
-      setHistory(h.transactions)
+      setHistory(h?.transactions ?? [])
     } catch (e) {
       setErr(serverError(e))
     }

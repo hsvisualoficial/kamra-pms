@@ -82,14 +82,14 @@ export default function Reports() {
   useEffect(load, [load])
 
   const sortedTrend = useMemo(() => {
-    if (!d) return []
+    if (!d?.trend) return []
     const dir = sortDirection === "asc" ? 1 : -1
     return [...d.trend].sort(
       (a, b) => dir * (trendValue(a, sortBy) - trendValue(b, sortBy)),
     )
   }, [d, sortBy, sortDirection])
 
-  if (!d) return <p className="py-10 text-center text-zinc-400">{t("Loading…")}</p>
+  if (!d || Array.isArray(d)) return <p className="py-10 text-center text-zinc-400">{t("Loading…")}</p>
   const todayData = d.today
 
   const trendCols: {

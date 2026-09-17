@@ -142,11 +142,11 @@ export default function SystemHealth() {
         </p>
       )}
 
-      {!data && !error && (
-        <p className="py-10 text-center text-sm text-zinc-400">{t("Loading…")}</p>
+      {(!data || Array.isArray(data)) && !error && (
+        <p className="py-10 text-center text-zinc-400">{t("Loading…")}</p>
       )}
 
-      {data && (
+      {data && !Array.isArray(data) && (
         <>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-3">

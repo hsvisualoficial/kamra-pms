@@ -70,9 +70,16 @@ export default function BanquetCatalogue() {
   const load = useCallback(() => {
     banquet
       .catalogue()
-      .then(setCat)
+      .then((c) =>
+        setCat(
+          Array.isArray(c) ? { menus: [], services: [], venues: [] } : c,
+        ),
+      )
       .catch((e) => setError(serverError(e)))
-    banquet.dishes().then(setDishes).catch(() => {})
+    banquet
+      .dishes()
+      .then((d) => setDishes(Array.isArray(d) ? [] : d))
+      .catch(() => {})
   }, [])
   useEffect(load, [load])
 

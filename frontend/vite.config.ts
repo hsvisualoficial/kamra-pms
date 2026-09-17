@@ -12,7 +12,7 @@ export default defineConfig(({ command }) => ({
   build: {
     outDir: "../kamra/public/frontend",
     emptyOutDir: true,
-    sourcemap: false,
+    sourcemap: true,
   },
   server: {
     // Defaults preserved; override with env when the standard ports are taken

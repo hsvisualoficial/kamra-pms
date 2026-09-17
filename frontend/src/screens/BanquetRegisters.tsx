@@ -59,7 +59,25 @@ export default function BanquetRegisters() {
     setData(null)
     banquet
       .register(reg, from, to)
-      .then(setData)
+      .then((res) =>
+        setData(
+          Array.isArray(res)
+            ? {
+                register: "",
+                title: "",
+                from: "",
+                to: "",
+                rows: [],
+                totals: { count: 0, value: 0 },
+                by_venue: [],
+                by_event_type: [],
+                by_session: [],
+                by_source: [],
+                by_mode: [],
+              }
+            : res,
+        ),
+      )
       .catch((e) => setError(serverError(e)))
   }, [reg, from, to])
   useEffect(load, [load])

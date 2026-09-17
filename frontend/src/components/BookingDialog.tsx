@@ -210,8 +210,8 @@ export function BookingDialog(props: {
       setOptions(o)
       setForm((f) => ({
         ...f,
-        room_type: f.room_type || o.room_types[0]?.name || "",
-        meal_plan: o.meal_plans.find((m) => m.is_default)?.name ?? "",
+        room_type: f.room_type || o?.room_types?.[0]?.name || "",
+        meal_plan: o?.meal_plans?.find((m) => m.is_default)?.name ?? "",
       }))
     })
   }, [])

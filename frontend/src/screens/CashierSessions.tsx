@@ -37,8 +37,8 @@ export default function CashierSessions() {
           business_date: date || undefined,
         },
       )
-      setRows(out.sessions)
-      if (!date) setDate(out.business_date)
+      setRows(out?.sessions ?? [])
+      if (!date) setDate(out?.business_date ?? "")
     } catch (e) {
       setErr(serverError(e))
     }

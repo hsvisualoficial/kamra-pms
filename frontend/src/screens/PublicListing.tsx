@@ -270,8 +270,8 @@ export default function PublicListing() {
           (d as unknown as { ui_locale?: { currency_symbol?: string; locale?: string } })
             .ui_locale,
         )
-        setData(d)
-        setForm((f) => ({ ...f, meal_plan: d.meal_plans[0]?.name ?? "" }))
+        setData(Array.isArray(d) ? null : d)
+        setForm((f) => ({ ...f, meal_plan: !Array.isArray(d) ? d?.meal_plans?.[0]?.name ?? "" : "" }))
       })
       .catch((e) => setError(serverError(e)))
   }, [slug])

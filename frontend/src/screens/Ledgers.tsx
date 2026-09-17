@@ -40,18 +40,18 @@ export default function Ledgers() {
         property: getCurrentProperty(),
         business_date: date || undefined,
       })
-      setLedgers(bal.ledgers)
-      setInBalance(bal.in_balance)
-      setTotals({ debit: bal.total_debit, credit: bal.total_credit })
-      if (!date) setDate(bal.business_date)
+      setLedgers(bal?.ledgers ?? [])
+      setInBalance(bal?.in_balance ?? true)
+      setTotals({ debit: bal?.total_debit ?? 0, credit: bal?.total_credit ?? 0 })
+      if (!date && bal?.business_date) setDate(bal.business_date)
       const j = await call<{ rows: typeof journal }>(
         "kamra.ledger.journal_by_transaction_code",
         {
           property: getCurrentProperty(),
-          business_date: bal.business_date,
+          business_date: bal?.business_date,
         },
       )
-      setJournal(j.rows)
+      setJournal(j?.rows ?? [])
       const a = await call<{ accounts: Record<string, unknown>[] }>(
         "kamra.ledger.city_ledger_aging",
         { property: getCurrentProperty() },
