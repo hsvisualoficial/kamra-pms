@@ -105,14 +105,14 @@ class KamraAPIHandler(BaseHTTPRequestHandler):
             return self._send_json({"message": []})
 
         if path.endswith("/kamra.api.front_desk_snapshot"):
+            import datetime
             return self._send_json({"message": {
-                "arrivals": 0,
-                "departures": 0,
-                "in_house": 0,
-                "available": 0,
-                "occupancy": 0,
-                "revpar": 0,
-                "adr": 0
+                "date": datetime.date.today().isoformat(),
+                "arrivals": [],
+                "departures": [],
+                "in_house": [],
+                "rooms": [],
+                "minutes_saved_30d": 0
             }})
 
         return None
