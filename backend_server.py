@@ -115,6 +115,24 @@ class KamraAPIHandler(BaseHTTPRequestHandler):
                 "minutes_saved_30d": 0
             }})
 
+        if path.endswith("/kamra.api.availability_calendar") or path.endswith("/kamra.api.venue_calendar"):
+            return self._send_json({"message": {
+                "start": "2026-09-17",
+                "days": 14,
+                "dates": [],
+                "room_types": [],
+                "venues": []
+            }})
+
+        if path.endswith("/kamra.api.tape_chart") or path.endswith("/kamra.api.tape_chart_hourly"):
+            return self._send_json({"message": {
+                "start": "2026-09-17",
+                "days": 14,
+                "dates": [],
+                "rooms": [],
+                "unassigned": []
+            }})
+
         return None
 
     def do_GET(self):
@@ -124,6 +142,9 @@ class KamraAPIHandler(BaseHTTPRequestHandler):
         handled = self._handle_api_request(path)
         if handled is not None:
             return
+
+        if path.startswith("/api/resource/"):
+            return self._send_json({"data": []}, status=200)
 
         # Default fallback for unknown GET APIs
         return self._send_json({"message": {}}, status=200)
@@ -184,8 +205,8 @@ class KamraAPIHandler(BaseHTTPRequestHandler):
         if path.endswith("/api/method/logout") or path.endswith("/logout"):
             return self._send_json({"message": "Logged Out"})
 
-        # Fallback for all other POST method calls
-        return self._send_json({"message": "ok"}, status=200)
+        # Fallback for all other POST method calls (returns an empty array so .map() doesn't crash)
+        return self._send_json({"message": []}, status=200)
 
 def run_server():
     server_address = ("0.0.0.0", PORT)
