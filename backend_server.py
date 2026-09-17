@@ -79,10 +79,7 @@ class KamraAPIHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Frappe-CSRF-Token")
         self.end_headers()
 
-    def do_GET(self):
-        parsed = urlparse(self.path)
-        path = parsed.path
-
+    def _handle_api_request(self, path, body=None):
         if path.endswith("/kamra.public_api.site_info"):
             return self._send_json({"message": {"demo_mode": True, "version": "2.0.0"}})
 
@@ -118,6 +115,16 @@ class KamraAPIHandler(BaseHTTPRequestHandler):
                 "adr": 0
             }})
 
+        return None
+
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        path = parsed.path
+
+        handled = self._handle_api_request(path)
+        if handled is not None:
+            return
+
         # Default fallback for unknown GET APIs
         return self._send_json({"message": {}}, status=200)
 
@@ -134,6 +141,10 @@ class KamraAPIHandler(BaseHTTPRequestHandler):
                 body = json.loads(post_data.decode("utf-8"))
             except Exception:
                 pass
+
+        handled = self._handle_api_request(path, body)
+        if handled is not None:
+            return
 
         if path.endswith("/api/method/login") or path.endswith("/login"):
             usr = str(body.get("usr", "")).strip().lower()
